@@ -1,12 +1,12 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
  * the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -19,6 +19,7 @@ package info.guardianproject.otr.app.im.provider;
 import info.guardianproject.otr.app.im.app.ImApp;
 
 import java.util.HashMap;
+import java.util.UUID;
 
 import android.content.ContentQueryMap;
 import android.content.ContentResolver;
@@ -35,7 +36,7 @@ import android.util.Log;
 /**
  * The IM provider stores all information about roster contacts, chat messages,
  * presence, etc.
- * 
+ *
  * @hide
  */
 public class Imps {
@@ -85,13 +86,13 @@ public class Imps {
         }
 
         public static final long getProviderIdForName(ContentResolver cr, String providerName) {
-            
-            
+
+
             String select = NAME + "=?";
             String[] selectionArgs = {providerName};
 
             Cursor cursor = cr.query(CONTENT_URI, PROVIDER_PROJECTION, select, selectionArgs, null);
-                    
+
             long retVal = 0;
             try {
                 if (cursor.moveToFirst()) {
@@ -100,12 +101,12 @@ public class Imps {
             } finally {
                 if (cursor != null)
                     cursor.close();
-                
+
             }
 
             return retVal;
         }
-        
+
         public static final String getProviderNameForId(ContentResolver cr, long providerId) {
             Cursor cursor = cr.query(CONTENT_URI, PROVIDER_PROJECTION, _ID + "=" + providerId,
                     null, null);
@@ -148,7 +149,7 @@ public class Imps {
         public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/imps-providers";
 
         /** The default sort order for this table */
-        public static final String DEFAULT_SORT_ORDER = "name ASC";
+        public static final String DEFAULT_SORT_ORDER = "providers._ID ASC";
     }
 
     /**
@@ -255,7 +256,7 @@ public class Imps {
         /** The content:// style URL for looking up by domain */
         public static final Uri BY_DOMAIN_URI = Uri
                 .parse("content://info.guardianproject.otr.app.im.provider.Imps/domainAccounts");
-        
+
 
         /**
          * The MIME type of {@link #CONTENT_URI} providing a directory of
@@ -415,7 +416,7 @@ public class Imps {
 
         /**
          * Google Contact Extension attribute
-         * 
+         *
          * Rejected: a boolean value indicating whether a subscription request
          * from this client was ever rejected by the user. "true" indicates that
          * it has. This is provided so that a client can block repeated
@@ -525,9 +526,12 @@ public class Imps {
         /** The default sort order for this table */
         public static final String DEFAULT_SORT_ORDER = "subscriptionType DESC, last_message_date DESC,"
                                                         + " mode DESC, nickname COLLATE NOCASE ASC";
-        
+
         /** The default sort order for this table */
         public static final String ALPHA_SORT_ORDER = "nickname COLLATE NOCASE ASC";
+
+        /** The default sort order for this table */
+        public static final String MODE_AND_ALPHA_SORT_ORDER = "mode DESC, nickname COLLATE NOCASE ASC";
 
         public static final String CHATS_CONTACT = "chats_contact";
 
@@ -740,12 +744,12 @@ public class Imps {
         int OTR_TURNED_ON_BY_USER = 11;
         /* off the record status turned on by buddy */
         int OTR_TURNED_ON_BY_BUDDY = 12;
-        
+
         /* received message */
         int INCOMING_ENCRYPTED = 13;
         /* received message */
         int INCOMING_ENCRYPTED_VERIFIED = 14;
-        
+
         /* received message */
         int OUTGOING_ENCRYPTED = 15;
         /* received message */
@@ -803,7 +807,7 @@ public class Imps {
 
         /** Whether a delivery confirmation was received. <P>Type: INTEGER</P> */
         String IS_DELIVERED = "is_delivered";
-        
+
         /** Mime type.  If non-null, body is a URI. */
         String MIME_TYPE = "mime_type";
     }
@@ -816,7 +820,7 @@ public class Imps {
 
         /**
          * Gets the Uri to query messages by thread id.
-         * 
+         *
          * @param threadId the thread id of the message.
          * @return the Uri
          */
@@ -828,9 +832,9 @@ public class Imps {
 
         /**
          * @deprecated
-         * 
+         *
          *             Gets the Uri to query messages by account and contact.
-         * 
+         *
          * @param accountId the account id of the contact.
          * @param username the user name of the contact.
          * @return the Uri
@@ -844,7 +848,7 @@ public class Imps {
 
         /**
          * Gets the Uri to query messages by provider.
-         * 
+         *
          * @param providerId the service provider id.
          * @return the Uri
          */
@@ -856,7 +860,7 @@ public class Imps {
 
         /**
          * Gets the Uri to query off the record messages by account.
-         * 
+         *
          * @param accountId the account id.
          * @return the Uri
          */
@@ -868,7 +872,7 @@ public class Imps {
 
         /**
          * Gets the Uri to query off the record messages by thread id.
-         * 
+         *
          * @param threadId the thread id of the message.
          * @return the Uri
          */
@@ -880,10 +884,10 @@ public class Imps {
 
         /**
          * @deprecated
-         * 
+         *
          *             Gets the Uri to query off the record messages by account
          *             and contact.
-         * 
+         *
          * @param accountId the account id of the contact.
          * @param username the user name of the contact.
          * @return the Uri
@@ -897,7 +901,7 @@ public class Imps {
 
         /**
          * Gets the Uri to query off the record messages by provider.
-         * 
+         *
          * @param providerId the service provider id.
          * @return the Uri
          */
@@ -909,7 +913,7 @@ public class Imps {
 
         /**
          * Gets the Uri to query off the record messages by account.
-         * 
+         *
          * @param accountId the account id.
          * @return the Uri
          */
@@ -1131,6 +1135,7 @@ public class Imps {
         String PRESENCE_STATUS = "mode";
 
         /** Presence Status definition */
+        
         int OFFLINE = 0;
         int INVISIBLE = 1;
         int AWAY = 2;
@@ -1139,7 +1144,7 @@ public class Imps {
         int AVAILABLE = 5;
         
         int NEW_ACCOUNT = -99;
-        
+
 
         /** The user defined status line. <P>Type: TEXT</P> */
         String PRESENCE_CUSTOM_STATUS = "status";
@@ -1295,7 +1300,7 @@ public class Imps {
     public static interface ProviderSettingsColumns {
         /**
          * The id in database of the related provider
-         * 
+         *
          * <P>Type: INT</P>
          */
         String PROVIDER = "provider";
@@ -1309,7 +1314,7 @@ public class Imps {
 
     public static class ProviderSettings implements ProviderSettingsColumns {
         // Global settings are saved with this provider ID, for backward compatibility
-        
+
         public static final long PROVIDER_ID_FOR_GLOBAL_SETTINGS = 1;
 
         private ProviderSettings() {
@@ -1381,12 +1386,13 @@ public class Imps {
          */
         public static final String AUTOMATICALLY_START_SERVICE = "auto_start_service";
 
+        public static final String LINKIFY_ON_TOR = "linkify_on_tor";
         /**
          * Global setting which controls whether the offline contacts will be
          * hid.
          */
         public static final String HIDE_OFFLINE_CONTACTS = "hide_offline_contacts";
-        
+
         public static final String DELETE_UNSECURED_MEDIA = "delete_unsecured_media";
 
         /** Global setting which controls whether enable the IM notification */
@@ -1424,17 +1430,17 @@ public class Imps {
          * rmq id received from the GTalk server
          */
         public static final String LAST_RMQ_RECEIVED = "last_rmq_rec";
-        
+
         /**
          * use for status persistence
          */
         public static final String PRESENCE_STATE = "presence_state";
         public static final String PRESENCE_STATUS_MESSAGE = "presence_status_message";
-        
+
 
         /**
          * Query the settings of the provider specified by id
-         * 
+         *
          * @param cr the relative content resolver
          * @param providerId the specified id of provider
          * @return a HashMap which contains all the settings for the specified
@@ -1463,7 +1469,7 @@ public class Imps {
         /**
          * Get the string value of setting which is specified by provider id and
          * the setting name.
-         * 
+         *
          * @param cr The ContentResolver to use to access the settings table.
          * @param providerId The id of the provider.
          * @param settingName The name of the setting.
@@ -1480,11 +1486,11 @@ public class Imps {
 
             return ret;
         }
-        
+
         /**
          * Get the string value of setting which is specified by provider id and
          * the setting name.
-         * 
+         *
          * @param cr The ContentResolver to use to access the settings table.
          * @param providerId The id of the provider.
          * @param settingName The name of the setting.
@@ -1493,7 +1499,7 @@ public class Imps {
          */
         public static int getIntValue(ContentResolver cr, long providerId, String settingName) {
             int ret = -1;
-            
+
             Cursor c = getSettingValue(cr, providerId, settingName);
             if (c != null) {
                 ret = c.getInt(0);
@@ -1506,7 +1512,7 @@ public class Imps {
         /**
          * Get the boolean value of setting which is specified by provider id
          * and the setting name.
-         * 
+         *
          * @param cr The ContentResolver to use to access the settings table.
          * @param providerId The id of the provider.
          * @param settingName The name of the setting.
@@ -1539,7 +1545,7 @@ public class Imps {
 
         /**
          * Save a long value of setting in the table providerSetting.
-         * 
+         *
          * @param cr The ContentProvider used to access the providerSetting
          *            table.
          * @param providerId The id of the provider.
@@ -1557,7 +1563,7 @@ public class Imps {
 
         /**
          * Save a long value of setting in the table providerSetting.
-         * 
+         *
          * @param cr The ContentProvider used to access the providerSetting
          *            table.
          * @param providerId The id of the provider.
@@ -1572,10 +1578,10 @@ public class Imps {
 
             cr.insert(CONTENT_URI, v);
         }
-        
+
         /**
          * Save a boolean value of setting in the table providerSetting.
-         * 
+         *
          * @param cr The ContentProvider used to access the providerSetting
          *            table.
          * @param providerId The id of the provider.
@@ -1594,7 +1600,7 @@ public class Imps {
 
         /**
          * Save a string value of setting in the table providerSetting.
-         * 
+         *
          * @param cr The ContentProvider used to access the providerSetting
          *            table.
          * @param providerId The id of the provider.
@@ -1609,14 +1615,14 @@ public class Imps {
             v.put(VALUE, value);
 
             cr.insert(CONTENT_URI, v);
-            
-            
+
+
         }
 
         /**
          * A convenience method to set the domain name affiliated with an
          * account
-         * 
+         *
          * @param cr The ContentResolver to use to access the settings table
          * @param providerId used to identify the set of settings for a given
          *            provider
@@ -1628,7 +1634,7 @@ public class Imps {
 
         /**
          * A convenience method to set the XMPP Resource string
-         * 
+         *
          * @param cr The ContentResolver to use to access the settings table
          * @param providerId used to identify the set of settings for a given
          *            provider
@@ -1640,7 +1646,7 @@ public class Imps {
 
         /**
          * A convenience method to set the XMPP Resource priority
-         * 
+         *
          * @param cr The ContentResolver to use to access the settings table
          * @param providerId used to identify the set of settings for a given
          *            provider
@@ -1652,7 +1658,7 @@ public class Imps {
 
         /**
          * A convenience method to set the TCP/IP port number to connect to
-         * 
+         *
          * @param cr The ContentResolver to use to access the settings table
          * @param providerId used to identify the set of settings for a given
          *            provider
@@ -1665,7 +1671,7 @@ public class Imps {
         /**
          * A convenience method to set the hostname or IP of the server to
          * connect to
-         * 
+         *
          * @param cr The ContentResolver to use to access the settings table
          * @param providerId used to identify the set of settings for a given
          *            provider
@@ -1677,7 +1683,7 @@ public class Imps {
 
         /**
          * A convenience method to set whether to allow plain text auth
-         * 
+         *
          * @param cr The ContentResolver to use to access the settings table
          * @param providerId used to identify the set of settings for a given
          *            provider
@@ -1690,7 +1696,7 @@ public class Imps {
 
         /**
          * A convenience method to set whether to require TLS
-         * 
+         *
          * @param cr The ContentResolver to use to access the settings table
          * @param providerId used to identify the set of settings for a given
          *            provider
@@ -1702,7 +1708,7 @@ public class Imps {
 
         /**
          * A convenience method to set whether to verify the TLS cert
-         * 
+         *
          * @param cr The ContentResolver to use to access the settings table
          * @param providerId used to identify the set of settings for a given
          *            provider
@@ -1715,7 +1721,7 @@ public class Imps {
 
         /**
          * A convenience method to set the mode of operation for the OTR Engine
-         * 
+         *
          * @param cr The ContentResolver to use to access the settings table
          * @param providerId used to identify the set of settings for a given
          *            provider
@@ -1727,7 +1733,7 @@ public class Imps {
 
         /**
          * A convenience method to set whether to use Tor
-         * 
+         *
          * @param cr The ContentResolver to use to access the settings table
          * @param providerId used to identify the set of settings for a given
          *            provider
@@ -1740,7 +1746,7 @@ public class Imps {
         /**
          * A convenience method to set whether to use DNS SRV lookups to find
          * the server
-         * 
+         *
          * @param cr The ContentResolver to use to access the settings table
          * @param providerId used to identify the set of settings for a given
          *            provider
@@ -1753,7 +1759,7 @@ public class Imps {
         /**
          * A convenience method to set whether or not the GTalk service should
          * be started automatically.
-         * 
+         *
          * @param contentResolver The ContentResolver to use to access the
          *            settings table
          * @param autoConnect Whether the GTalk service should be started
@@ -1764,10 +1770,15 @@ public class Imps {
             putBooleanValue(contentResolver, providerId, AUTOMATICALLY_CONNECT_GTALK, autoConnect);
         }
 
+        public static void setLinkifyOnTor(ContentResolver contentResolver, long providerId,
+                boolean linkifyOnTor) {
+            putBooleanValue(contentResolver, providerId, LINKIFY_ON_TOR, linkifyOnTor);
+        }
+
         /**
          * A convenience method to set whether or not the offline contacts
          * should be hided
-         * 
+         *
          * @param contentResolver The ContentResolver to use to access the
          *            setting table
          * @param hideOfflineContacts Whether the offline contacts should be
@@ -1777,7 +1788,7 @@ public class Imps {
                 boolean hideOfflineContacts) {
             putBooleanValue(contentResolver, providerId, HIDE_OFFLINE_CONTACTS, hideOfflineContacts);
         }
-        
+
         public static void setDeleteUnsecuredMedia(ContentResolver contentResolver, long providerId,
                 boolean deleteUnsecuredMedia) {
             putBooleanValue(contentResolver, providerId, DELETE_UNSECURED_MEDIA, deleteUnsecuredMedia);
@@ -1791,7 +1802,7 @@ public class Imps {
         /**
          * A convenience method to set whether or not enable the IM
          * notification.
-         * 
+         *
          * @param contentResolver The ContentResolver to use to access the
          *            setting table.
          * @param enable Whether enable the IM notification
@@ -1803,7 +1814,7 @@ public class Imps {
 
         /**
          * A convenience method to set whether or not to vibrate.
-         * 
+         *
          * @param contentResolver The ContentResolver to use to access the
          *            setting table.
          * @param vibrate Whether or not to vibrate
@@ -1815,7 +1826,7 @@ public class Imps {
 
         /**
          * A convenience method to set the Uri String of the ringtone.
-         * 
+         *
          * @param contentResolver The ContentResolver to use to access the
          *            setting table.
          * @param ringtoneUri The Uri String of the ringtone to be set.
@@ -1827,7 +1838,7 @@ public class Imps {
 
         /**
          * A convenience method to set whether or not to show mobile indicator.
-         * 
+         *
          * @param contentResolver The ContentResolver to use to access the
          *            setting table.
          * @param showMobileIndicator Whether or not to show mobile indicator.
@@ -1840,7 +1851,7 @@ public class Imps {
         /**
          * A convenience method to set whether or not to show as away when
          * device is idle.
-         * 
+         *
          * @param contentResolver The ContentResolver to use to access the
          *            setting table.
          * @param showAway Whether or not to show as away when device is idle.
@@ -1852,7 +1863,7 @@ public class Imps {
 
         /**
          * A convenience method to set whether or not to upload heartbeat stat.
-         * 
+         *
          * @param contentResolver The ContentResolver to use to access the
          *            setting table.
          * @param uploadStat Whether or not to upload heartbeat stat.
@@ -1865,7 +1876,7 @@ public class Imps {
         /**
          * A convenience method to set the heartbeat interval last received from
          * the server.
-         * 
+         *
          * @param contentResolver The ContentResolver to use to access the
          *            setting table.
          * @param interval The heartbeat interval last received from the server.
@@ -1877,24 +1888,24 @@ public class Imps {
 
         /**
          * A convenience method to user configure presence state and status
-         * 
+         *
          * @param contentResolver The ContentResolver to use to access the
          *            setting table.
          * @param interval The heartbeat interval last received from the server.
          */
         public static void setPresence(ContentResolver contentResolver, long providerId,
                 int state, String statusMessage) {
-            
+
             if (state != -1)
                 putIntValue(contentResolver, providerId, PRESENCE_STATE, state);
-            
+
             if (statusMessage != null)
                 putStringValue(contentResolver, providerId, PRESENCE_STATUS_MESSAGE, statusMessage);
         }
 
-        
-        
-        
+
+
+
         /** A convenience method to set the jid resource. */
         public static void setJidResource(ContentResolver contentResolver, long providerId,
                 String jidResource) {
@@ -1914,13 +1925,13 @@ public class Imps {
             }*/
 
             //contentResolver.query(CONTENT_URI,new String[] {NAME, VALUE},PROVIDER + "=?",new String[] { Long.toString(providerId)},null)
-            
+
             public QueryMap(Cursor cursor, ContentResolver contentResolver, long providerId, boolean keepUpdated,
                     Handler handlerForUpdateNotifications) {
-                
+
                 super(cursor, // no sort order
                         NAME, keepUpdated, handlerForUpdateNotifications);
-               
+
                 mContentResolver = contentResolver;
                 mProviderId = providerId;
                 mStacktrace = new Exception();
@@ -1930,7 +1941,7 @@ public class Imps {
                 mStacktrace = null;
                 super.close();
             }
-            
+
             @Override
             protected void finalize() throws Throwable {
                 if (mStacktrace != null) {
@@ -1940,7 +1951,7 @@ public class Imps {
             }
             /**
              * Set if the GTalk service should automatically connect to server.
-             * 
+             *
              * @param autoConnect if the GTalk service should auto connect to
              *            server.
              */
@@ -1952,7 +1963,7 @@ public class Imps {
             /**
              * Check if the GTalk service should automatically connect to
              * server.
-             * 
+             *
              * @return if the GTalk service should automatically connect to
              *         server.
              */
@@ -1973,7 +1984,15 @@ public class Imps {
             }
 
             public String getXmppResource() {
-                return getString(XMPP_RESOURCE, ImApp.DEFAULT_XMPP_RESOURCE);
+                String currentResource = getString(XMPP_RESOURCE, ImApp.DEFAULT_XMPP_RESOURCE);
+                String defaultResource;
+                if (currentResource.equals(ImApp.DEFAULT_XMPP_RESOURCE)) {
+                    defaultResource = ImApp.DEFAULT_XMPP_RESOURCE + "-"
+                                      + UUID.randomUUID().toString().substring(0, 8);
+                    setXmppResource(defaultResource);
+                    return defaultResource;
+                }
+                return currentResource;
             }
 
             public void setXmppResourcePrio(int prio) {
@@ -2033,6 +2052,14 @@ public class Imps {
                 return getString(OTR_MODE, ImApp.DEFAULT_XMPP_OTR_MODE /* by default, try to use OTR */);
             }
 
+            public void setLinkifyOnTor(boolean value) {
+                ProviderSettings.setLinkifyOnTor(mContentResolver, mProviderId, value);
+            }
+
+            public boolean getLinkifyOnTor() {
+                return getBoolean(LINKIFY_ON_TOR, false /* default do not linkify */);
+            }
+
             public void setUseTor(boolean value) {
                 ProviderSettings.setUseTor(mContentResolver, mProviderId, value);
             }
@@ -2051,7 +2078,7 @@ public class Imps {
 
             /**
              * Set whether or not the offline contacts should be hided.
-             * 
+             *
              * @param hideOfflineContacts Whether or not the offline contacts
              *            should be hided.
              */
@@ -2062,7 +2089,7 @@ public class Imps {
 
             /**
              * Check if the offline contacts should be hided.
-             * 
+             *
              * @return Whether or not the offline contacts should be hided.
              */
             public boolean getHideOfflineContacts() {
@@ -2087,7 +2114,7 @@ public class Imps {
 
             /**
              * Set whether or not enable the IM notification.
-             * 
+             *
              * @param enable Whether or not enable the IM notification.
              */
             public void setEnableNotification(boolean enable) {
@@ -2096,7 +2123,7 @@ public class Imps {
 
             /**
              * Check if the IM notification is enabled.
-             * 
+             *
              * @return Whether or not enable the IM notification.
              */
             public boolean getEnableNotification() {
@@ -2105,7 +2132,7 @@ public class Imps {
 
             /**
              * Set whether or not to vibrate on IM notification.
-             * 
+             *
              * @param vibrate Whether or not to vibrate.
              */
             public void setVibrate(boolean vibrate) {
@@ -2114,7 +2141,7 @@ public class Imps {
 
             /**
              * Gets whether or not to vibrate on IM notification.
-             * 
+             *
              * @return Whether or not to vibrate.
              */
             public boolean getVibrate() {
@@ -2123,7 +2150,7 @@ public class Imps {
 
             /**
              * Set the Uri for the ringtone.
-             * 
+             *
              * @param ringtoneUri The Uri of the ringtone to be set.
              */
             public void setRingtoneURI(String ringtoneUri) {
@@ -2132,7 +2159,7 @@ public class Imps {
 
             /**
              * Get the Uri String of the current ringtone.
-             * 
+             *
              * @return The Uri String of the current ringtone.
              */
             public String getRingtoneURI() {
@@ -2141,7 +2168,7 @@ public class Imps {
 
             /**
              * Set whether or not to show mobile indicator to friends.
-             * 
+             *
              * @param showMobile whether or not to show mobile indicator.
              */
             public void setShowMobileIndicator(boolean showMobile) {
@@ -2150,7 +2177,7 @@ public class Imps {
 
             /**
              * Gets whether or not to show mobile indicator.
-             * 
+             *
              * @return Whether or not to show mobile indicator.
              */
             public boolean getShowMobileIndicator() {
@@ -2159,7 +2186,7 @@ public class Imps {
 
             /**
              * Set whether or not to show as away when device is idle.
-             * 
+             *
              * @param showAway whether or not to show as away when device is
              *            idle.
              */
@@ -2169,7 +2196,7 @@ public class Imps {
 
             /**
              * Get whether or not to show as away when device is idle.
-             * 
+             *
              * @return Whether or not to show as away when device is idle.
              */
             public boolean getShowAwayOnIdle() {
@@ -2178,7 +2205,7 @@ public class Imps {
 
             /**
              * Set whether or not to upload heartbeat stat.
-             * 
+             *
              * @param uploadStat whether or not to upload heartbeat stat.
              */
             public void setUploadHeartbeatStat(boolean uploadStat) {
@@ -2187,7 +2214,7 @@ public class Imps {
 
             /**
              * Get whether or not to upload heartbeat stat.
-             * 
+             *
              * @return Whether or not to upload heartbeat stat.
              */
             public boolean getUploadHeartbeatStat() {
@@ -2215,7 +2242,7 @@ public class Imps {
 
             /**
              * Set the JID resource.
-             * 
+             *
              * @param jidResource the jid resource to be stored.
              */
             public void setJidResource(String jidResource) {
@@ -2224,7 +2251,7 @@ public class Imps {
 
             /**
              * Get the JID resource used for the Google Talk connection
-             * 
+             *
              * @return the JID resource stored.
              */
             public String getJidResource() {
@@ -2234,7 +2261,7 @@ public class Imps {
             /**
              * Convenience function for retrieving a single settings value as a
              * boolean.
-             * 
+             *
              * @param name The name of the setting to retrieve.
              * @param def Value to return if the setting is not defined.
              * @return The setting's current value, or 'def' if it is not
@@ -2248,7 +2275,7 @@ public class Imps {
             /**
              * Convenience function for retrieving a single settings value as a
              * String.
-             * 
+             *
              * @param name The name of the setting to retrieve.
              * @param def The value to return if the setting is not defined.
              * @return The setting's current value or 'def' if it is not
@@ -2262,7 +2289,7 @@ public class Imps {
             /**
              * Convenience function for retrieving a single settings value as an
              * Integer.
-             * 
+             *
              * @param name The name of the setting to retrieve.
              * @param def The value to return if the setting is not defined.
              * @return The setting's current value or 'def' if it is not
@@ -2276,7 +2303,7 @@ public class Imps {
             /**
              * Convenience function for retrieving a single settings value as a
              * Long.
-             * 
+             *
              * @param name The name of the setting to retrieve.
              * @param def The value to return if the setting is not defined.
              * @return The setting's current value or 'def' if it is not
@@ -2334,7 +2361,7 @@ public class Imps {
 
         /**
          * queryHighestRmqId
-         * 
+         *
          * @param resolver the content resolver
          * @return the highest rmq id assigned to the rmq packet, or 0 if there
          *         are no rmq packets in the OutgoingRmq table.
@@ -2392,9 +2419,9 @@ public class Imps {
 
         /**
          * queryLastRmqId
-         * 
+         *
          * queries the last rmq id saved in the LastRmqId table.
-         * 
+         *
          * @param resolver the content resolver.
          * @return the last rmq id stored in the LastRmqId table, or 0 if not
          *         found.
@@ -2419,10 +2446,10 @@ public class Imps {
 
         /**
          * saveLastRmqId
-         * 
+         *
          * saves the rmqId to the lastRmqId table. This will override the
          * existing row if any, as we only keep one row of data in this table.
-         * 
+         *
          * @param resolver the content resolver.
          * @param rmqId the rmq id to be saved.
          */
@@ -2461,19 +2488,19 @@ public class Imps {
     {
         try {
             Cursor cursor = null;
-            
+
             Uri uri = Imps.Provider.CONTENT_URI_WITH_ACCOUNT;
-            
+
             Builder builder = uri.buildUpon();
             builder = builder.appendQueryParameter(ImApp.NO_CREATE_KEY, "1");
-            
+
             uri = builder.build();
-            
+
             cursor = context.getContentResolver().query(
                     uri, null, Imps.Provider.CATEGORY + "=?" /* selection */,
                     new String[] { ImApp.IMPS_CATEGORY } /* selection args */,
                     null);
- 
+
             if (cursor != null)
             {
                 cursor.close();
@@ -2483,35 +2510,35 @@ public class Imps {
             {
                 return false;
             }
-            
+
         } catch (Exception e) {
             // Only complain if we thought this password should succeed
-            
+
              Log.e(ImApp.LOG_TAG, e.getMessage(), e);
-            
+
             // needs to be unlocked
             return false;
         }
     }
-    
+
 
     public static boolean isUnencrypted(Context context) {
         try {
             Cursor cursor = null;
-            
+
             Uri uri = Imps.Provider.CONTENT_URI_WITH_ACCOUNT;
-            
+
             Builder builder = uri.buildUpon();
             builder.appendQueryParameter(ImApp.CACHEWORD_PASSWORD_KEY, "");
             builder = builder.appendQueryParameter(ImApp.NO_CREATE_KEY, "1");
-            
+
             uri = builder.build();
-            
+
             cursor = context.getContentResolver().query(
                     uri, null, Imps.Provider.CATEGORY + "=?" /* selection */,
                     new String[] { ImApp.IMPS_CATEGORY } /* selection args */,
                     null);
- 
+
             if (cursor != null)
             {
                cursor.close();
@@ -2521,27 +2548,27 @@ public class Imps {
             {
                 return false;
             }
-            
+
         } catch (Exception e) {
             // Only complain if we thought this password should succeed
-            
+
              Log.e(ImApp.LOG_TAG, e.getMessage(), e);
-            
+
             // needs to be unlocked
             return false;
         }
     }
     public static boolean setEmptyPassphrase(Context ctx, boolean noCreate) {
         String pkey = "";
-    
+
         Uri uri = Provider.CONTENT_URI_WITH_ACCOUNT;
-    
+
         Builder builder = uri.buildUpon().appendQueryParameter(ImApp.CACHEWORD_PASSWORD_KEY, pkey);
         if (noCreate) {
             builder.appendQueryParameter(ImApp.NO_CREATE_KEY, "1");
         }
         uri = builder.build();
-    
+
         Cursor cursor = ctx.getContentResolver().query(uri, null, null, null, null);
         if (cursor != null) {
             cursor.close();
@@ -2552,10 +2579,10 @@ public class Imps {
 
     public static void clearPassphrase(Context ctx) {
         Uri uri = Provider.CONTENT_URI_WITH_ACCOUNT;
-    
+
         Builder builder = uri.buildUpon().appendQueryParameter(ImApp.CLEAR_PASSWORD_KEY, "1");
         uri = builder.build();
-    
+
         Cursor cursor = ctx.getContentResolver().query(uri, null, null, null, null);
         if (cursor != null) {
             throw new RuntimeException("Unexpected cursor returned");
@@ -2566,21 +2593,21 @@ public class Imps {
             boolean isGroup,
             long contactId,
             boolean isEncrypted,
-            String contact,
+            String nickname,
             String body,
             long time,
             int type,
             int errCode,
             String id,
             String mimeType) {
-        
+
         ContentValues values = new ContentValues();
         values.put(Imps.Messages.BODY, body);
         values.put(Imps.Messages.DATE, time);
         values.put(Imps.Messages.TYPE, type);
         values.put(Imps.Messages.ERROR_CODE, errCode);
         if (isGroup) {
-            values.put(Imps.Messages.NICKNAME, contact);
+            values.put(Imps.Messages.NICKNAME, nickname);
             values.put(Imps.Messages.IS_GROUP_CHAT, 1);
         }
         values.put(Imps.Messages.IS_DELIVERED, 0);
@@ -2591,26 +2618,26 @@ public class Imps {
     }
 
     public static int updateMessageBody(ContentResolver resolver, String id, String body, String mimeType) {
-        
+
         Uri.Builder builder = Imps.Messages.OTR_MESSAGES_CONTENT_URI.buildUpon();
         builder.appendPath(id);
-        
+
         ContentValues values = new ContentValues();
         values.put(Imps.Messages.BODY, body);
         values.put(Imps.Messages.MIME_TYPE, mimeType);
-        
+
         return resolver.update(builder.build(), values, null, null);
     }
 
     public static int updateConfirmInDb(ContentResolver resolver, String id, boolean isDelivered) {
         Uri.Builder builder = Imps.Messages.OTR_MESSAGES_CONTENT_URI_BY_PACKET_ID.buildUpon();
         builder.appendPath(id);
-        
+
         ContentValues values = new ContentValues(1);
         values.put(Imps.Messages.IS_DELIVERED, isDelivered);
         return resolver.update(builder.build(), values, null, null);
     }
 
 
-    
+
 }

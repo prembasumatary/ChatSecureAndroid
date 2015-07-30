@@ -1,13 +1,13 @@
 /*
  * Copyright (C) 2008 Esmertec AG. Copyright (C) 2008 The Android Open Source
  * Project
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
  * the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -17,9 +17,7 @@
 
 package info.guardianproject.otr.app.im.app;
 
-import static android.provider.Contacts.ContactMethods.CONTENT_EMAIL_URI;
 import info.guardianproject.otr.OtrAndroidKeyManagerImpl;
-import info.guardianproject.otr.app.im.IChatSession;
 import info.guardianproject.otr.app.im.IContactList;
 import info.guardianproject.otr.app.im.IContactListManager;
 import info.guardianproject.otr.app.im.IImConnection;
@@ -27,45 +25,43 @@ import info.guardianproject.otr.app.im.R;
 import info.guardianproject.otr.app.im.engine.ImErrorInfo;
 import info.guardianproject.otr.app.im.plugin.BrandingResourceIDs;
 import info.guardianproject.otr.app.im.provider.Imps;
-import info.guardianproject.otr.app.im.ui.SecureCameraActivity;
+import info.guardianproject.util.XmppUriHelper;
 
-import java.io.File;
 import java.util.List;
+import java.util.Map;
 
-import com.google.zxing.integration.android.IntentIntegrator;
-import com.google.zxing.integration.android.IntentResult;
-
-import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.database.DatabaseUtils;
-import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.provider.Contacts.ContactMethods;
+import android.support.v4.widget.SimpleCursorAdapter;
+import android.support.v7.app.ActionBarActivity;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.util.Rfc822Token;
 import android.text.util.Rfc822Tokenizer;
+import android.util.AttributeSet;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.Button;
 import android.widget.MultiAutoCompleteTextView;
-import android.widget.ResourceCursorAdapter;
-import android.widget.SimpleCursorAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class AddContactActivity extends Activity {
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
+
+public class AddContactActivity extends ActionBarActivity {
+    private static final String TAG = "AddContactActivity";
 
     private static final String[] CONTACT_LIST_PROJECTION = { Imps.ContactList._ID,
                                                              Imps.ContactList.NAME, };
@@ -86,8 +82,8 @@ public class AddContactActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         mApp = (ImApp)getApplication();
+        mApp.setAppTheme(this);
         mHandler = new SimpleAlertHandler(this);
-        resolveIntent(getIntent());
 
         setContentView(R.layout.add_contact_activity);
 
@@ -100,28 +96,73 @@ public class AddContactActivity extends Activity {
         mAddressList = (MultiAutoCompleteTextView) findViewById(R.id.email);
         mAddressList.setTokenizer(new Rfc822Tokenizer());
         mAddressList.addTextChangedListener(mTextWatcher);
-        
+
         mListSpinner = (Spinner) findViewById(R.id.choose_list);
 
-        mCursorProviders = queryContactLists();
+        setupAccountSpinner();
+
+        mInviteButton = (Button) findViewById(R.id.invite);
+        mInviteButton.setText(brandingRes.getString(BrandingResourceIDs.STRING_BUTTON_ADD_CONTACT));
+        mInviteButton.setOnClickListener(mButtonHandler);
+        mInviteButton.setEnabled(false);
+
+        mScanButton = (Button) findViewById(R.id.scan);
+        mScanButton.setOnClickListener(mScanHandler);
+
+        Intent intent = getIntent();
+        String scheme = intent.getScheme();
+        if (TextUtils.equals(scheme, "xmpp"))
+        {
+            addContactFromUri(intent.getData());
+        }
+    }
+    
+    
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        
+        if (mCursorProviders != null && (!mCursorProviders.isClosed()))
+                mCursorProviders.close();
+        
+    }
+
+
+
+    private void setupAccountSpinner ()
+    {
+        final Uri uri = Imps.Provider.CONTENT_URI_WITH_ACCOUNT;
+
+        mCursorProviders = managedQuery(uri,  PROVIDER_PROJECTION,
+        Imps.Provider.CATEGORY + "=?" + " AND " + Imps.Provider.ACTIVE_ACCOUNT_USERNAME + " NOT NULL" /* selection */,
+        new String[] { ImApp.IMPS_CATEGORY } /* selection args */,
+        Imps.Provider.DEFAULT_SORT_ORDER);
+        
         SimpleCursorAdapter adapter = new SimpleCursorAdapter(this,
-                android.R.layout.simple_spinner_item, mCursorProviders, new String[] { Imps.Provider.ACTIVE_ACCOUNT_USERNAME},
+                android.R.layout.simple_spinner_item, mCursorProviders, 
+                new String[] { 
+                       Imps.Provider.ACTIVE_ACCOUNT_USERNAME
+                       },
                 new int[] { android.R.id.text1 });
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         
-        if (mCursorProviders.getCount() > 0)
-        {   
+        // TODO Something is causing the managedQuery() to return null, use null guard for now
+        if (mCursorProviders != null && mCursorProviders.getCount() > 0)
+        {
             mCursorProviders.moveToFirst();
             mProviderId = mCursorProviders.getLong(PROVIDER_ID_COLUMN);
             mAccountId = mCursorProviders.getLong(ACTIVE_ACCOUNT_ID_COLUMN);
         }
-        
+
         mListSpinner.setAdapter(adapter);
         mListSpinner.setOnItemSelectedListener(new OnItemSelectedListener() {
 
             @Override
             public void onItemSelected(AdapterView<?> arg0, View arg1,
                     int arg2, long arg3) {
+                if (mCursorProviders == null)
+                    return;
                 mCursorProviders.moveToPosition(arg2);
                 mProviderId = mCursorProviders.getLong(PROVIDER_ID_COLUMN);
                 mAccountId = mCursorProviders.getLong(ACTIVE_ACCOUNT_ID_COLUMN);
@@ -133,26 +174,18 @@ public class AddContactActivity extends Activity {
 
             }
         });
-        
-        
-        mInviteButton = (Button) findViewById(R.id.invite);
-        mInviteButton.setText(brandingRes.getString(BrandingResourceIDs.STRING_BUTTON_ADD_CONTACT));
-        mInviteButton.setOnClickListener(mButtonHandler);
-        mInviteButton.setEnabled(false);
-        
-        mScanButton = (Button) findViewById(R.id.scan);        
-        mScanButton.setOnClickListener(mScanHandler);
+
     }
+    
+    public class ProviderListItemFactory implements LayoutInflater.Factory {
+        @Override
+        public View onCreateView(String name, Context context, AttributeSet attrs) {
+            if (name != null && name.equals(ProviderListItem.class.getName())) {
+                return new ProviderListItem(context, AddContactActivity.this, null);
+            }
+            return null;
+        }
 
-    private Cursor queryContactLists() {
-        final Uri uri = Imps.Provider.CONTENT_URI_WITH_ACCOUNT;
-
-        Cursor c = managedQuery(uri,  PROVIDER_PROJECTION,
-        Imps.Provider.CATEGORY + "=?" + " AND " + Imps.Provider.ACTIVE_ACCOUNT_USERNAME + " NOT NULL" /* selection */,
-        new String[] { ImApp.IMPS_CATEGORY } /* selection args */,
-        Imps.Provider.DEFAULT_SORT_ORDER);
-        
-        return c;
     }
 
     private int searchInitListPos(Cursor c, String listName) {
@@ -168,25 +201,21 @@ public class AddContactActivity extends Activity {
         return 0;
     }
 
-    private void resolveIntent(Intent intent) {
-       // mProviderId = intent.getLongExtra(ImServiceConstants.EXTRA_INTENT_PROVIDER_ID, -1);
-       // mAccountId = intent.getLongExtra(ImServiceConstants.EXTRA_INTENT_ACCOUNT_ID, -1);
-    }
-    
-    private String getDefaultDomain ()
+    private String getDomain (long providerId)
     {
         //mDefaultDomain = Imps.ProviderSettings.getStringValue(getContentResolver(), mProviderId,
           //      ImpsConfigNames.DEFAULT_DOMAIN);
         ContentResolver cr = getContentResolver();
-        Cursor pCursor = cr.query(Imps.ProviderSettings.CONTENT_URI,new String[] {Imps.ProviderSettings.NAME, Imps.ProviderSettings.VALUE},Imps.ProviderSettings.PROVIDER + "=?",new String[] { Long.toString(mProviderId)},null);
-        
+        Cursor pCursor = cr.query(Imps.ProviderSettings.CONTENT_URI,new String[] {Imps.ProviderSettings.NAME, Imps.ProviderSettings.VALUE},Imps.ProviderSettings.PROVIDER + "=?",new String[] { Long.toString(providerId)},null);
+
         Imps.ProviderSettings.QueryMap settings = new Imps.ProviderSettings.QueryMap(
-                pCursor, cr, mProviderId, false /* don't keep updated */, null /* no handler */);
-        
+                pCursor, cr, providerId, false /* don't keep updated */, null /* no handler */);
+
         String domain = settings.getDomain();//get domain of current user
-        
+
         settings.close();
-        
+        pCursor.close();
+
         return domain;
     }
 
@@ -202,35 +231,37 @@ public class AddContactActivity extends Activity {
             } else {
                 boolean fail = false;
                 String username = null;
-                
+
                 for (Rfc822Token recipient : recipients) {
                     username = recipient.getAddress();
                     if (username.indexOf('@') == -1) {
-                        username = username + "@" + getDefaultDomain();
+                        username = username + "@" + getDomain(mProviderId);
                     }
                     if (Log.isLoggable(ImApp.LOG_TAG, Log.DEBUG)) {
                         log("addContact:" + username);
                     }
+                    
                     int res = list.addContact(username);
                     if (res != ImErrorInfo.NO_ERROR) {
                         fail = true;
                         mHandler.showAlert(R.string.error,
                                 ErrorResUtils.getErrorRes(getResources(), res, username));
                     }
-                    
+
                 }
                 // close the screen if there's no error.
                 if (!fail) {
-                    
+
                     if (username != null)
                     {
                         Intent intent=new Intent();
-                        intent.putExtra("contact", username);
+                        intent.putExtra(ContactsPickerActivity.EXTRA_RESULT_USERNAME, username);
+                        intent.putExtra(ContactsPickerActivity.EXTRA_RESULT_PROVIDER, mProviderId);
                         setResult(RESULT_OK, intent);
                         finish();
                     }
-                    
-                    
+
+
                 }
             }
         } catch (RemoteException ex) {
@@ -245,8 +276,8 @@ public class AddContactActivity extends Activity {
 
         try {
             IContactListManager contactListMgr = conn.getContactListManager();
-            String listName = "";//getSelectedListName(); 
-            
+            String listName = "";//getSelectedListName();
+
             if (!TextUtils.isEmpty(listName)) {
                 return contactListMgr.getContactList(listName);
             } else {
@@ -269,7 +300,7 @@ public class AddContactActivity extends Activity {
             return null;
         }
     }
-    
+
     /**
     private String getSelectedListName() {
         Cursor c = (Cursor) mListSpinner.getSelectedItem();
@@ -285,7 +316,7 @@ public class AddContactActivity extends Activity {
             });
         }
     };
-    
+
 
     private View.OnClickListener mScanHandler = new View.OnClickListener() {
         public void onClick(View v) {
@@ -312,46 +343,43 @@ public class AddContactActivity extends Activity {
         Log.d(ImApp.LOG_TAG, "<AddContactActivity> " + msg);
     }
 
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent resultIntent) {
         if (resultCode == RESULT_OK) {
-            
 
             IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode,
                     resultIntent);
-            String xmppUri = scanResult.getContents();
-
-            try
-            {
-    
-                if (scanResult != null) {
-    
-                    if (xmppUri.startsWith("xmpp"))
-                    {
-                        Uri uriXmpp = Uri.parse(xmppUri); //strip thte scheme so we can parse it properly
-                        String otrFingerprint = uriXmpp.getQueryParameter("otr-fingerprint");
-                     
-                        String address = uriXmpp.getUserInfo() + '@' + uriXmpp.getHost(); 
-                        
-                        this.mAddressList.setText(address);
-                        
-                        //store this for future use... ideally the user comes up as verified the first time!
-                        OtrAndroidKeyManagerImpl.getInstance(this).verifyUser(address, otrFingerprint);
-                        
-                    }
-                    
-                  
-                }
-            }
-            catch (Exception e)
-            {
-                Toast.makeText(this, "error parsing address: " + xmppUri,Toast.LENGTH_LONG).show();
+            if (scanResult != null) {
+                String qrContents = scanResult.getContents();
+                if (!TextUtils.isEmpty(qrContents))
+                    addContactFromUri(Uri.parse(qrContents));
             }
         }
     }
- 
-    
+
+    /**
+     * Implement {@code xmpp:} URI parsing according to the RFC: http://tools.ietf.org/html/rfc5122
+     * @param uri the URI to be parsed
+     */
+    private void addContactFromUri(Uri uri) {
+        Log.i(TAG, "addContactFromUri: " + uri + "  scheme: " + uri.getScheme());
+        Map<String, String> parsedUri = XmppUriHelper.parse(uri);
+        if (!parsedUri.containsKey(XmppUriHelper.KEY_ADDRESS)) {
+            Toast.makeText(this, "error parsing address: " + uri, Toast.LENGTH_LONG).show();
+            return;
+        }
+        String address = parsedUri.get(XmppUriHelper.KEY_ADDRESS);
+        this.mAddressList.setText(address);
+        this.mInviteButton.setBackgroundColor(R.drawable.btn_green);
+
+        //store this for future use... ideally the user comes up as verified the first time!
+        String fingerprint = parsedUri.get(XmppUriHelper.KEY_OTR_FINGERPRINT);
+        if (!TextUtils.isEmpty(fingerprint)) {
+            Log.i(TAG, "fingerprint: " + fingerprint);
+            OtrAndroidKeyManagerImpl.getInstance(this).verifyUser(address, fingerprint);
+        }
+    }
+
     private static final String[] PROVIDER_PROJECTION = {
                                                          Imps.Provider._ID,
                                                          Imps.Provider.NAME,
@@ -364,6 +392,7 @@ public class AddContactActivity extends Activity {
                                                          Imps.Provider.ACTIVE_ACCOUNT_KEEP_SIGNED_IN,
                                                          Imps.Provider.ACCOUNT_PRESENCE_STATUS,
                                                          Imps.Provider.ACCOUNT_CONNECTION_STATUS
+                                                         
                                                         };
 
     static final int PROVIDER_ID_COLUMN = 0;

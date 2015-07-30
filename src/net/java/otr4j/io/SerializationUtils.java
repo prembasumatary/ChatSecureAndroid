@@ -1,9 +1,11 @@
 /*
  * otr4j, the open source java otr library.
- * 
+ *
  * Distributable under LGPL license. See terms of license at gnu.org.
  */
 package net.java.otr4j.io;
+
+import android.util.Base64;
 
 import info.guardianproject.otr.OtrConstants;
 
@@ -13,6 +15,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.security.PublicKey;
 import java.util.List;
 import java.util.Vector;
@@ -34,10 +37,20 @@ import net.java.otr4j.io.messages.RevealSignatureMessage;
 import net.java.otr4j.io.messages.SignatureM;
 import net.java.otr4j.io.messages.SignatureMessage;
 import net.java.otr4j.io.messages.SignatureX;
-import android.util.Base64;
 
 /** @author George Politis */
 public class SerializationUtils {
+
+    /**
+     * Charset for base64-encoded content.
+     */
+    public static Charset ASCII = Charset.forName("US-ASCII");
+
+    /**
+     * Charset for message content according to OTR spec.
+     */
+    public static Charset UTF8 = Charset.forName("UTF-8");
+
     // Mysterious X IO.
     public static SignatureX toMysteriousX(byte[] b) throws IOException {
         ByteArrayInputStream in = new ByteArrayInputStream(b);
@@ -73,6 +86,7 @@ public class SerializationUtils {
         oos.writeMysteriousT(t);
         byte[] b = out.toByteArray();
         out.close();
+        oos.close();
         return b;
     }
 
@@ -83,6 +97,7 @@ public class SerializationUtils {
         oos.writeData(b);
         byte[] otrb = out.toByteArray();
         out.close();
+        oos.close();
         return otrb;
     }
 
@@ -138,6 +153,7 @@ public class SerializationUtils {
                         writer.write(" \\t \\t  \\t ");
                 }
             }
+
             break;
         case AbstractMessage.MESSAGE_QUERY:
             QueryMessage query = (QueryMessage) m;

@@ -28,7 +28,7 @@ interface IChatListener {
      *
      * response indicates whether the user is focused on this message stream or not (for notifications)
      */
-    boolean onIncomingMessage(IChatSession ses, in Message msg);
+    boolean onIncomingMessage(IChatSession ses, in info.guardianproject.otr.app.im.engine.Message msg);
 
     /**
      * This method is called when a new message of the ChatSession has arrived.
@@ -38,7 +38,7 @@ interface IChatListener {
     /**
      * This method is called when an error is found to send a message in the ChatSession.
      */
-    void onSendMessageError(IChatSession ses, in Message msg, in ImErrorInfo error);
+    void onSendMessageError(IChatSession ses, in info.guardianproject.otr.app.im.engine.Message msg, in ImErrorInfo error);
 
     /**
      * This method is called when the chat is converted to a group chat.
@@ -74,7 +74,7 @@ interface IChatListener {
 	
 	
 	/** this is called when there is a incoming file transfer request **/
-	void onIncomingFileTransferProgress (String file, float percent);
+	void onIncomingFileTransferProgress (String file, int percent);
 	
 	/** this is called when there is a incoming file transfer request **/
 	void onIncomingFileTransferError (String file, String message);

@@ -1,13 +1,13 @@
 /*
  * Copyright (C) 2007-2008 Esmertec AG. Copyright (C) 2007-2008 The Android Open
  * Source Project
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
  * the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -31,6 +31,7 @@ import info.guardianproject.otr.app.im.engine.ChatGroup;
 import info.guardianproject.otr.app.im.engine.ChatGroupManager;
 import info.guardianproject.otr.app.im.engine.ChatSession;
 import info.guardianproject.otr.app.im.engine.Contact;
+import info.guardianproject.otr.app.im.engine.ContactListManager;
 import info.guardianproject.otr.app.im.engine.GroupListener;
 import info.guardianproject.otr.app.im.engine.GroupMemberListener;
 import info.guardianproject.otr.app.im.engine.ImConnection;
@@ -46,7 +47,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import net.java.otr4j.session.SessionID;
 import net.java.otr4j.session.SessionStatus;
 
 import org.jivesoftware.smack.packet.Packet;
@@ -96,23 +96,23 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
     private boolean mHasUnreadMessages;
 
     private RemoteImService service = null;
-    
+
     OtrChatSessionAdapter mOtrChatSession;
     private OtrDataHandler mDataHandler;
-    
+
     private IDataListener mDataListener;
     private DataHandlerListenerImpl mDataHandlerListener;
-    
+
     private boolean mAcceptTransfer = false;
     private boolean mWaitingForResponse = false;
     private boolean mAcceptAllTransfer = false;
     private String mLastFileUrl = null;
-    
+
 
     private long mContactId;
 
     public ChatSessionAdapter(ChatSession chatSession, ImConnectionAdapter connection, boolean isNewSession) {
-        
+
         mChatSession = chatSession;
         mConnection = connection;
 
@@ -122,7 +122,7 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
         mChatSessionManager = (ChatSessionManagerAdapter) connection.getChatSessionManager();
 
         mListenerAdapter = new ListenerAdapter();
-        
+
         initOtrChatSession();//setup first time
 
         ImEntity participant = mChatSession.getParticipant();
@@ -137,66 +137,89 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
 
     private void initOtrChatSession ()
     {
+        try
+        {
+            if (mConnection != null)
+            {
+                mDataHandler = new OtrDataHandler(mChatSession);
+                mDataHandlerListener = new DataHandlerListenerImpl();
+                mDataHandler.setDataListener(mDataHandlerListener);
 
-        mDataHandler = new OtrDataHandler(mChatSession);
-        mDataHandlerListener = new DataHandlerListenerImpl();
-        mDataHandler.setDataListener(mDataHandlerListener);
-        
-        String localUser = mConnection.getLoginUser().getAddress().getAddress();
-        String remoteUser = mChatSession.getParticipant().getAddress().getAddress();
+                String localUser = mConnection.getLoginUser().getAddress().getAddress();
+                String remoteUser = mChatSession.getParticipant().getAddress().getAddress();
 
-        OtrChatManager cm = service.getOtrChatManager();
-        
-        SessionID sid = cm.getSessionId(localUser, remoteUser);
-        
-        mOtrChatSession = new OtrChatSessionAdapter(sid, service.getOtrChatManager());
-    
-        // add OtrChatListener as the intermediary to mListenerAdapter so it can filter OTR msgs
-        mChatSession.setMessageListener(new OtrChatListener(service.getOtrChatManager(), mListenerAdapter));
-        mChatSession.setOtrChatManager(service.getOtrChatManager());
+                OtrChatManager cm = service.getOtrChatManager();
+
+                mOtrChatSession = new OtrChatSessionAdapter(localUser, remoteUser, cm);
+
+                // add OtrChatListener as the intermediary to mListenerAdapter so it can filter OTR msgs
+                mChatSession.setMessageListener(new OtrChatListener(cm, mListenerAdapter));
+               // mChatSession.setOtrChatManager(cm);
+            }
+        }
+        catch (NullPointerException npe)
+        {
+            Log.e(ImApp.LOG_TAG,"error init OTR session",npe);
+        }
     }
 
     public synchronized IOtrChatSession getOtrChatSession() {
+
+        if (mOtrChatSession == null)
+            initOtrChatSession();
 
         return mOtrChatSession;
     }
 
     private void init(ChatGroup group, boolean isNewSession) {
+        
         mIsGroupChat = true;
-        mContactId = insertGroupContactInDb(group);
+
+        mContactId = insertOrUpdateGroupContactInDb(group);
         group.addMemberListener(mListenerAdapter);
 
-        mMessageURI = Imps.Messages.getContentUriByThreadId(mContactId);
+        try {            
+            mChatSessionManager.getChatGroupManager().joinChatGroupAsync(group.getAddress());
         
-        mChatURI = ContentUris.withAppendedId(Imps.Chats.CONTENT_URI, mContactId);
-        
-        if (isNewSession)
-            insertOrUpdateChat(null);
-
-        for (Contact c : group.getMembers()) {
-            mContactStatusMap.put(c.getName(), c.getPresence().getStatus());
+            mMessageURI = Imps.Messages.getContentUriByThreadId(mContactId);
+    
+            mChatURI = ContentUris.withAppendedId(Imps.Chats.CONTENT_URI, mContactId);
+    
+            if (isNewSession)
+                insertOrUpdateChat(null);
+    
+            for (Contact c : group.getMembers()) {
+                mContactStatusMap.put(c.getName(), c.getPresence().getStatus());
+            }
+            
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
+        
+        
     }
 
     private void init(Contact contact, boolean isNewSession) {
         mIsGroupChat = false;
         ContactListManagerAdapter listManager = (ContactListManagerAdapter) mConnection
                 .getContactListManager();
+        
         mContactId = listManager.queryOrInsertContact(contact);
 
         mMessageURI = Imps.Messages.getContentUriByThreadId(mContactId);
 
         mChatURI = ContentUris.withAppendedId(Imps.Chats.CONTENT_URI, mContactId);
-        
+
         if (isNewSession)
             insertOrUpdateChat(null);
 
         mContactStatusMap.put(contact.getName(), contact.getPresence().getStatus());
     }
-    
+
     public void reInit ()
     {
-        insertOrUpdateChat(null);
+       // insertOrUpdateChat(null);
 
     }
 
@@ -226,7 +249,7 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
             }
             return result;
         } else {
-            
+
             return new String[] { mChatSession.getParticipant().getAddress().getAddress() };
         }
     }
@@ -235,7 +258,7 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
      * Convert this chat session to a group chat. If it's already a group chat,
      * nothing will happen. The method works in async mode and the registered
      * listener will be notified when it's converted to group chat successfully.
-     * 
+     *
      * Note that the method is not thread-safe since it's always called from the
      * UI and Android uses single thread mode for UI.
      */
@@ -289,8 +312,8 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
         mContentResolver.delete(mChatURI, null, null);
         mStatusBarNotifier.dismissChatNotification(mConnection.getProviderId(), getAddress());
         mChatSessionManager.closeChatSession(this);
-        
-        
+
+
     }
 
     public void leaveIfInactive() {
@@ -308,16 +331,15 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
         }
 
         info.guardianproject.otr.app.im.engine.Message msg = new info.guardianproject.otr.app.im.engine.Message(text);
-       
+
         msg.setFrom(mConnection.getLoginUser().getAddress());
-        
         msg.setType(Imps.MessageType.OUTGOING);
-        
-        mChatSession.sendMessageAsync(msg);
-        
+
+        int newType = mChatSession.sendMessageAsync(msg);
+
         long now = System.currentTimeMillis();
-        if (!isGroupChatSession())
-            insertMessageInDb(null, text, now, msg.getType(), 0, msg.getID());
+        
+        insertMessageInDb(null, text, now, newType, 0, msg.getID());
     }
 
     public boolean offerData(String offerId, String url, String type) {
@@ -325,13 +347,13 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
             // TODO send later
             return false;
         }
-        
+
         HashMap<String, String> headers = null;
         if (type != null) {
             headers = Maps.newHashMap();
             headers.put("Mime-Type", type);
         }
-        
+
         try
         {
             mDataHandler.offerData(offerId, mConnection.getLoginUser().getAddress(), url, headers);
@@ -347,12 +369,12 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
     /**
      * Sends a message to other participant(s) in this session without adding it
      * to the history.
-     * 
+     *
      * @param msg the message to send.
      */
     /*
     public void sendMessageWithoutHistory(String text) {
-    
+
      Message msg = new Message(text);
      // TODO OTRCHAT use a lower level method
      mChatSession.sendMessageAsync(msg);
@@ -372,27 +394,27 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
         }
 
         while (c.moveToNext()) {
-            String body = c.getString(1);
             String id = c.getString(2);
+            String body = c.getString(1);
+            
             info.guardianproject.otr.app.im.engine.Message msg = new info.guardianproject.otr.app.im.engine.Message(body);
             // TODO OTRCHAT move setFrom() to ChatSession.sendMessageAsync()
             msg.setFrom(mConnection.getLoginUser().getAddress());
             msg.setID(id);
             msg.setType(Imps.MessageType.OUTGOING);
-            
-            mChatSession.sendMessageAsync(msg);            
-            
-            updateMessageInDb(id, msg.getType(), System.currentTimeMillis());
+
+            int newType = mChatSession.sendMessageAsync(msg);
+            updateMessageInDb(id, newType, System.currentTimeMillis());
 
         }
-        //c.commitUpdates();
+        
         c.close();
     }
 
     public void registerChatListener(IChatListener listener) {
         if (listener != null) {
             mRemoteListeners.register(listener);
-            
+
             if (mDataHandlerListener != null)
                 mDataHandlerListener.checkLastTransferRequest ();
         }
@@ -406,15 +428,15 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
 
     public void markAsRead() {
         if (mHasUnreadMessages) {
-            
+
             /**
              * we want to keep the last message now
             ContentValues values = new ContentValues(1);
             values.put(Imps.Chats.LAST_UNREAD_MESSAGE, (String) null);
             mConnection.getContext().getContentResolver().update(mChatURI, values, null, null);
 */
-            
-            mStatusBarNotifier.dismissChatNotification(mConnection.getProviderId(), getAddress());
+            String baseUsername = mChatSession.getParticipant().getAddress().getBareAddress();
+            mStatusBarNotifier.dismissChatNotification(mConnection.getProviderId(), baseUsername);
 
             mHasUnreadMessages = false;
         }
@@ -423,15 +445,20 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
     String getNickName(String username) {
         ImEntity participant = mChatSession.getParticipant();
         if (mIsGroupChat) {
+            
             ChatGroup group = (ChatGroup) participant;
             List<Contact> members = group.getMembers();
             for (Contact c : members) {
                 if (username.equals(c.getAddress().getAddress())) {
-                    return c.getName();
+                    
+                    return c.getAddress().getResource();
+                        
                 }
             }
+            
             // not found, impossible
-            return username;
+            String[] parts = username.split("/");
+            return parts[parts.length-1];
         } else {
             return ((Contact) participant).getName();
         }
@@ -470,46 +497,57 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
     }
 
     void insertOrUpdateChat(String message) {
-            
+
         ContentValues values = new ContentValues(2);
 
         values.put(Imps.Chats.LAST_MESSAGE_DATE, System.currentTimeMillis());
          values.put(Imps.Chats.LAST_UNREAD_MESSAGE, message);
-        
+         values.put(Imps.Chats.GROUP_CHAT, mIsGroupChat);
          // ImProvider.insert() will replace the chat if it already exist.
          mContentResolver.insert(mChatURI, values);
-    
+         
+
     }
 
-    private long insertGroupContactInDb(ChatGroup group) {
+    private long insertOrUpdateGroupContactInDb(ChatGroup group) {
         // Insert a record in contacts table
         ContentValues values = new ContentValues(4);
         values.put(Imps.Contacts.USERNAME, group.getAddress().getAddress());
         values.put(Imps.Contacts.NICKNAME, group.getName());
-        values.put(Imps.Contacts.CONTACTLIST, ContactListManagerAdapter.FAKE_TEMPORARY_LIST_ID);
+        values.put(Imps.Contacts.CONTACTLIST, ContactListManagerAdapter.LOCAL_GROUP_LIST_ID);
         values.put(Imps.Contacts.TYPE, Imps.Contacts.TYPE_GROUP);
 
         Uri contactUri = ContentUris.withAppendedId(
                 ContentUris.withAppendedId(Imps.Contacts.CONTENT_URI, mConnection.mProviderId),
                 mConnection.mAccountId);
-        long id = ContentUris.parseId(mContentResolver.insert(contactUri, values));
-
-        ArrayList<ContentValues> memberValues = new ArrayList<ContentValues>();
-        Contact self = mConnection.getLoginUser();
-        for (Contact member : group.getMembers()) {
-            if (!member.equals(self)) { // avoid to insert the user himself
-                ContentValues memberValue = new ContentValues(2);
-                memberValue.put(Imps.GroupMembers.USERNAME, member.getAddress().getAddress());
-                memberValue.put(Imps.GroupMembers.NICKNAME, member.getName());
-                memberValues.add(memberValue);
+      
+        ContactListManagerAdapter listManager = (ContactListManagerAdapter) mConnection
+                .getContactListManager();
+        
+        long id = listManager.queryGroup(group);
+        
+        if (id == -1)
+        {
+            id = ContentUris.parseId(mContentResolver.insert(contactUri, values));
+        
+            ArrayList<ContentValues> memberValues = new ArrayList<ContentValues>();
+            Contact self = mConnection.getLoginUser();
+            for (Contact member : group.getMembers()) {
+                if (!member.equals(self)) { // avoid to insert the user himself
+                    ContentValues memberValue = new ContentValues(2);
+                    memberValue.put(Imps.GroupMembers.USERNAME, member.getAddress().getAddress());
+                    memberValue.put(Imps.GroupMembers.NICKNAME, member.getName());
+                    memberValues.add(memberValue);
+                }
+            }
+            if (!memberValues.isEmpty()) {
+                ContentValues[] result = new ContentValues[memberValues.size()];
+                memberValues.toArray(result);
+                Uri memberUri = ContentUris.withAppendedId(Imps.GroupMembers.CONTENT_URI, id);
+                mContentResolver.bulkInsert(memberUri, result);
             }
         }
-        if (!memberValues.isEmpty()) {
-            ContentValues[] result = new ContentValues[memberValues.size()];
-            memberValues.toArray(result);
-            Uri memberUri = ContentUris.withAppendedId(Imps.GroupMembers.CONTENT_URI, id);
-            mContentResolver.bulkInsert(memberUri, result);
-        }
+        
         return id;
     }
 
@@ -588,7 +626,7 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
     Uri insertMessageInDb(String contact, String body, long time, int type, int errCode, String id) {
         boolean isEncrypted = true;
         try {
-            isEncrypted = mOtrChatSession.isChatEncrypted();
+            isEncrypted = getOtrChatSession().isChatEncrypted();
         } catch (RemoteException e) {
             // Leave it as encrypted so it gets stored in memory
             // FIXME(miron)
@@ -597,18 +635,21 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
     }
 
     int updateMessageInDb(String id, int type, long time) {
-        
+
         Uri.Builder builder = Imps.Messages.OTR_MESSAGES_CONTENT_URI_BY_PACKET_ID.buildUpon();
         builder.appendPath(id);
-        
+
         ContentValues values = new ContentValues(1);
         values.put(Imps.Messages.TYPE, type);
-        values.put(Imps.Messages.DATE, time);
+        
+        if (time != -1)
+            values.put(Imps.Messages.DATE, time);
+        
         return mContentResolver.update(builder.build(), values, null, null);
     }
 
-    
-    
+
+
     class ListenerAdapter implements MessageListener, GroupMemberListener {
 
         public boolean  onIncomingMessage(ChatSession ses, final info.guardianproject.otr.app.im.engine.Message msg) {
@@ -617,22 +658,22 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
             String bareUsername = msg.getFrom().getBareAddress();
             String nickname = getNickName(username);
             long time = msg.getDateTime().getTime();
-            
+
             insertOrUpdateChat(body);
-            
-            insertMessageInDb(username, body, time, msg.getType());
+
+            insertMessageInDb(nickname, body, time, msg.getType());
 
             boolean wasMessageSeen = false;
-            
+
             int N = mRemoteListeners.beginBroadcast();
             for (int i = 0; i < N; i++) {
                 IChatListener listener = mRemoteListeners.getBroadcastItem(i);
                 try {
                     boolean wasSeen = listener.onIncomingMessage(ChatSessionAdapter.this, msg);
-                    
+
                     if (wasSeen)
                         wasMessageSeen = wasSeen;
-                    
+
                 } catch (RemoteException e) {
                     // The RemoteCallbackList will take care of removing the
                     // dead listeners.
@@ -649,7 +690,7 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
                 mStatusBarNotifier.notifyChat(mConnection.getProviderId(), mConnection.getAccountId(),
                         getId(), bareUsername, nickname, body, false);
             }
-            
+
             mHasUnreadMessages = true;
             return true;
         }
@@ -774,6 +815,12 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
             }
             mRemoteListeners.finishBroadcast();
             mDataHandler.onOtrStatusChanged(status);
+            
+            if (status == SessionStatus.ENCRYPTED)
+            {
+                sendPostponedMessages ();
+            }
+            
         }
 
         @Override
@@ -788,10 +835,10 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
 
         @Override
         public void onIncomingTransferRequest(final Transfer transfer) {
-            
+
         }
-        
-        
+
+
     }
 
     class ChatConvertor implements GroupListener, GroupMemberListener {
@@ -852,11 +899,11 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
 
     @Override
     public void setDataListener(IDataListener dataListener) throws RemoteException {
-        
+
         mDataListener = dataListener;
         mDataHandler.setDataListener(mDataListener);
     }
-    
+
     @Override
     public void setIncomingFileResponse (boolean acceptThis, boolean acceptAll)
     {
@@ -864,41 +911,43 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
         mAcceptTransfer = acceptThis;
         mAcceptAllTransfer = acceptAll;
         mWaitingForResponse = false;
-        
+
         mDataHandler.acceptTransfer(mLastFileUrl);
 
     }
 
     class DataHandlerListenerImpl extends IDataListener.Stub {
-        
+
         @Override
         public void onTransferComplete(boolean outgoing, String offerId, String from, String url, String mimeType, String filePath) {
-            
-            
+
+
             try {
-                
-               
+
+
                 if (outgoing) {
                     Imps.updateConfirmInDb(service.getContentResolver(), offerId, true);
                 } else {
-                    
+
                     try
                     {
-                        boolean isVerified = mOtrChatSession.isKeyVerified(from);
-            
+                        boolean isVerified = getOtrChatSession().isKeyVerified(from);
+
                         int type = isVerified ? Imps.MessageType.INCOMING_ENCRYPTED_VERIFIED : Imps.MessageType.INCOMING_ENCRYPTED;
+
+                        insertOrUpdateChat(filePath);
                         
                         Uri messageUri = Imps.insertMessageInDb(service.getContentResolver(),
                                 false, getId(),
                                 true, null,
                                 filePath, System.currentTimeMillis(), type,
                                 0, offerId, mimeType);
-                        
+
                         int percent = (int)(100);
-                        
-                        String[] path = url.split("/"); 
+
+                        String[] path = url.split("/");
                         String sanitizedPath = SystemServices.sanitize(path[path.length - 1]);
-                   
+
                         final int N = mRemoteListeners.beginBroadcast();
                         for (int i = 0; i < N; i++) {
                             IChatListener listener = mRemoteListeners.getBroadcastItem(i);
@@ -911,45 +960,46 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
                         }
                         mRemoteListeners.finishBroadcast();
                         
+
                     }
                     catch (Exception e)
                     {
                         Log.e(ImApp.LOG_TAG,"Error updating file transfer progress",e);
                     }
-                    
+
                 }
-            
+
                 /**
                 if (mimeType != null && mimeType.startsWith("audio"))
                 {
                     MediaPlayer mp = new MediaPlayer();
                     try {
                         mp.setDataSource(file.getCanonicalPath());
-                   
+
                         mp.prepare();
                         mp.start();
-                    
+
                     } catch (IOException e) {
                         // TODO Auto-generated catch block
                         //e.printStackTrace();
                     }
                 }*/
-                    
+
             } catch (Exception e) {
              //   mHandler.showAlert(service.getString(R.string.error_chat_file_transfer_title), service.getString(R.string.error_chat_file_transfer_body));
                 OtrDebugLogger.log("error reading file", e);
             }
-            
+
 
         }
 
         @Override
         public synchronized void onTransferFailed(boolean outgoing, String offerId, String from, String url, String reason) {
-            
 
-            String[] path = url.split("/"); 
+
+            String[] path = url.split("/");
             String sanitizedPath = SystemServices.sanitize(path[path.length - 1]);
-            
+
             final int N = mRemoteListeners.beginBroadcast();
             for (int i = 0; i < N; i++) {
                 IChatListener listener = mRemoteListeners.getBroadcastItem(i);
@@ -965,12 +1015,12 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
 
         @Override
         public synchronized void onTransferProgress(boolean outgoing, String offerId, String from, String url, float percentF) {
-            
+
             int percent = (int)(100*percentF);
-            
-            String[] path = url.split("/"); 
+
+            String[] path = url.split("/");
             String sanitizedPath = SystemServices.sanitize(path[path.length - 1]);
-            
+
             try
             {
                 final int N = mRemoteListeners.beginBroadcast();
@@ -997,7 +1047,7 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
 
         private String mLastTransferFrom;
         private String mLastTransferUrl;
-        
+
         public void checkLastTransferRequest ()
         {
             if (mLastTransferFrom != null)
@@ -1007,14 +1057,14 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
                 mLastTransferUrl = null;
             }
         }
-        
+
         @Override
         public synchronized boolean onTransferRequested(String offerId, String from, String to, String transferUrl) {
-            
-            mAcceptTransfer = false;            
+
+            mAcceptTransfer = false;
             mWaitingForResponse = true;
             mLastFileUrl = transferUrl;
-            
+
             if (mAcceptAllTransfer)
             {
                 mAcceptTransfer = true;
@@ -1029,7 +1079,7 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
                 try
                 {
                     final int N = mRemoteListeners.beginBroadcast();
-                    
+
                     if (N > 0)
                     {
                         for (int i = 0; i < N; i++) {
@@ -1046,7 +1096,7 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
                     {
                         mLastTransferFrom = from;
                         mLastTransferUrl = transferUrl;
-                        
+
                         //reinstated body display here in the notification; perhaps add preferences to turn that off
                         mStatusBarNotifier.notifyChat(mConnection.getProviderId(), mConnection.getAccountId(),
                                 getId(), from, from, "Incoming file request", false);
@@ -1056,19 +1106,19 @@ public class ChatSessionAdapter extends info.guardianproject.otr.app.im.IChatSes
                 {
                     mRemoteListeners.finishBroadcast();
                 }
-                
+
                 mAcceptTransfer = false; //for now, wait for the user callback
             }
-            
+
             return mAcceptTransfer;
-            
+
         }
-        
-       
-        
+
+
+
     }
-    
-    
-    
-    
+
+
+
+
 }

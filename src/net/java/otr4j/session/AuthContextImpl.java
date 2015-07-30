@@ -1,6 +1,6 @@
 /*
  * otr4j, the open source java otr library.
- * 
+ *
  * Distributable under LGPL license. See terms of license at gnu.org.
  */
 package net.java.otr4j.session;
@@ -12,8 +12,8 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.KeyPair;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.Random;
 import java.util.Vector;
 import java.util.logging.Logger;
 
@@ -46,6 +46,7 @@ class AuthContextImpl implements AuthContext {
     private Session session;
 
     private int authenticationState;
+    SecureRandom secureRandom;
     private byte[] r;
 
     private DHPublicKey remoteDHPublicKey;
@@ -69,7 +70,7 @@ class AuthContextImpl implements AuthContext {
     private KeyPair localLongTermKeyPair;
     private Boolean isSecure = false;
     private int protocolVersion;
-    
+
     private static Logger logger = Logger.getLogger(AuthContextImpl.class.getName());
 
     private int getProtocolVersion() {
@@ -198,10 +199,12 @@ class AuthContextImpl implements AuthContext {
     }
 
     private byte[] getR() {
+        if (secureRandom == null)
+            secureRandom = new java.security.SecureRandom();
         if (r == null) {
             logger.finest("Picking random key r.");
             r = new byte[OtrCryptoEngine.AES_KEY_BYTE_LENGTH];
-            new Random().nextBytes(r);
+            secureRandom.nextBytes(r);
         }
         return r;
     }
@@ -280,8 +283,8 @@ class AuthContextImpl implements AuthContext {
 
     public byte[] getExtraSymmetricKey() throws OtrException {
         return h2(EXTRA_SYMMETRIC_KEY);
-    } 
-    
+    }
+
     private byte[] getC() throws OtrException {
         if (c != null)
             return c;

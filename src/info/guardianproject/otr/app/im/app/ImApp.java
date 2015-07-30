@@ -1,13 +1,13 @@
 /*
  * Copyright (C) 2007-2008 Esmertec AG. Copyright (C) 2007-2008 The Android Open
  * Source Project
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
  * the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -54,6 +54,7 @@ import net.sqlcipher.database.SQLiteDatabase;
 import org.thoughtcrime.ssl.pinning.PinningTrustManager;
 import org.thoughtcrime.ssl.pinning.SystemKeyStore;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
 import android.content.ComponentName;
@@ -70,19 +71,25 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.ActionBarActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import de.duenndns.ssl.MemorizingTrustManager;
 
 public class ImApp extends Application {
-    
+
     public static final String LOG_TAG = "GB.ImApp";
 
     public static final String EXTRA_INTENT_SEND_TO_USER = "Send2_U";
@@ -95,23 +102,23 @@ public class ImApp extends Application {
     public static final String IMPS_CATEGORY = "info.guardianproject.otr.app.im.IMPS_CATEGORY";
     public static final String ACTION_QUIT = "info.guardianproject.otr.app.im.QUIT";
 
-    public static final int DEFAULT_AVATAR_WIDTH = 128;
-    public static final int DEFAULT_AVATAR_HEIGHT = 128;
+    public static final int DEFAULT_AVATAR_WIDTH = 64;
+    public static final int DEFAULT_AVATAR_HEIGHT = 64;
 
     public static final String HOCKEY_APP_ID = "2fa3b9252319e47367f1f125bb3adcd1";
 
     public static final String DEFAULT_TIMEOUT_CACHEWORD = "-1"; //one day
-    
+
     public static final String CACHEWORD_PASSWORD_KEY = "pkey";
     public static final String CLEAR_PASSWORD_KEY = "clear_key";
 
     public static final String NO_CREATE_KEY = "nocreate";
-    
+
     //ACCOUNT SETTINGS Imps defaults
     public static final String DEFAULT_XMPP_RESOURCE = "ChatSecure";
     public static final int DEFAULT_XMPP_PRIORITY = 20;
     public static final String DEFAULT_XMPP_OTR_MODE = "auto";
-    
+
     private Locale locale = null;
 
     public static ImApp sImApp;
@@ -123,9 +130,9 @@ public class ImApp extends Application {
     HashMap<Long, ProviderDef> mProviders;
 
     Broadcaster mBroadcaster;
-    
+
     public MemorizingTrustManager mTrustManager;
-    
+
     public static boolean mUsingCacheword = false;
 
     /**
@@ -201,7 +208,7 @@ public class ImApp extends Application {
         sImApp.onCreate();
     }
 */
-    
+
     @Override
     public Resources getResources() {
         if (mApplicationContext == this) {
@@ -230,7 +237,7 @@ public class ImApp extends Application {
             // object causes an infinite relaunch loop in Android 4.2 (JB MR1)
             Configuration myConfig = new Configuration(newConfig);
             myConfig.locale = locale;
-            
+
             Locale.setDefault(locale);
             getResources().updateConfiguration(myConfig, getResources().getDisplayMetrics());
         }
@@ -239,60 +246,100 @@ public class ImApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        
+
         sImApp = this;
-        
+
         Debug.onAppStart();
-        
+
         PRNGFixes.apply(); //Google's fix for SecureRandom bug: http://android-developers.blogspot.com/2013/08/some-securerandom-thoughts.html
-        
+
+        // load these libs up front to shorten the delay after typing the passphrase
         SQLiteDatabase.loadLibs(getApplicationContext());
-        VirtualFileSystem.get().isMounted(); //use this to trigger loadLibs
-        
-        mConnections = new HashMap<Long, IImConnection>();        
+        VirtualFileSystem.get().isMounted();
+
+        mConnections = new HashMap<Long, IImConnection>();
         mApplicationContext = this;
-        
+
         initTrustManager();
-        
+
         mBroadcaster = new Broadcaster();
 
-        setAppTheme(null);
-        
+        setAppTheme(null,null);
+
         checkLocale();
     }
-    
+
     private boolean mThemeDark = false;
-    
+
     public boolean isThemeDark ()
     {
-        return mThemeDark;       
+        return mThemeDark;
     }
     
     public void setAppTheme (Activity activity)
     {
+        setAppTheme(activity, null);
+    }
+    
+    private final static int COLOR_TOOLBAR_DARK = Color.parseColor("#263238");
+    private final static int COLOR_TOOLBAR_LIGHT = Color.parseColor("#B0BEC5");
+
+    public void setAppTheme (Activity activity, Toolbar toolbar)
+    {
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
-        
+
         mThemeDark = settings.getBoolean("themeDark", false);
-        
+
         if (mThemeDark)
-        {            
+        {
             setTheme(R.style.AppThemeDark);
-            
+
+
             if (activity != null)
+            {
                 activity.setTheme(R.style.AppThemeDark);
+                if (activity instanceof ActionBarActivity)
+                {
+                    ActionBar ab = ((ActionBarActivity)activity).getSupportActionBar();
+                    
+                    if (ab != null)
+                    {
+                        ab.setBackgroundDrawable(new ColorDrawable(COLOR_TOOLBAR_DARK));                        
+                    }
+                }
+            }      
+            if (toolbar != null)                
+                toolbar.setBackgroundColor(COLOR_TOOLBAR_DARK);
+      
         }
         else
         {
             setTheme(R.style.AppTheme);
-            
-            
+
+
             if (activity != null)
+            {
                 activity.setTheme(R.style.AppTheme);
+                if (activity instanceof ActionBarActivity)
+                {
+                    ActionBar ab = ((ActionBarActivity)activity).getSupportActionBar();
+                    
+                    if (ab != null)
+                    {
+                        ab.setBackgroundDrawable(new ColorDrawable(COLOR_TOOLBAR_LIGHT));                        
+                    }
+                }
+            }
+            
+            if (toolbar != null)
+                toolbar.setBackgroundColor(COLOR_TOOLBAR_LIGHT);
+            
+            
         }
-        
+
         Configuration config = getResources().getConfiguration();
         getResources().updateConfiguration(config, getResources().getDisplayMetrics());
-     
+
         if (mImService != null)
         {
             boolean debugOn = settings.getBoolean("prefDebug", false);
@@ -303,72 +350,62 @@ public class ImApp extends Application {
             }
         }
     }
-    
-    public boolean checkLocale ()
+
+    public void checkLocale ()
     {
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
 
         Configuration config = getResources().getConfiguration();
 
-        String lang = settings.getString(getString(R.string.pref_default_locale), "");
-        
-        
+        String lang = settings.getString(getString(R.string.key_default_locale_pref), "");
+
+
         if ("".equals(lang)) {
-            Properties props = AssetUtil.getProperties("gibberbot.properties", this);
+            Properties props = AssetUtil.getProperties("chatsecure.properties", this);
             if (props != null) {
                 String configuredLocale = props.getProperty("locale");
                 if (configuredLocale != null && !"CHOOSE".equals(configuredLocale)) {
                     lang = configuredLocale;
                     Editor editor = settings.edit();
-                    editor.putString(getString(R.string.pref_default_locale), lang);
-                    editor.commit();
+                    editor.putString(getString(R.string.key_default_locale_pref), lang);
+                    editor.apply();
                 }
             }
         }
-        
-        boolean updatedLocale = false;
-        
+
         if (!"".equals(lang) && !config.locale.getLanguage().equals(lang)) {
-            locale = new Locale(lang);            
+            locale = new Locale(lang);
             config.locale = locale;
             getResources().updateConfiguration(config, getResources().getDisplayMetrics());
-            updatedLocale = true;
         }
 
         loadDefaultBrandingRes();
-        
-        return updatedLocale;
     }
 
-    public boolean setNewLocale(Context context, String localeString) {
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
+    public void setNewLocale(Context context, String language) {
+        /* handle locales with the country in it, i.e. zh_CN, zh_TW, etc */
+        String localeSplit[] = language.split("_");
+        if (localeSplit.length > 1)
+            locale = new Locale(localeSplit[0], localeSplit[1]);
+        else
+            locale = new Locale(language);
+        Configuration config = getResources().getConfiguration();
+        if (Build.VERSION.SDK_INT >= 17)
+            config.setLocale(locale);
+        else
+            config.locale = locale;
+        getResources().updateConfiguration(config, getResources().getDisplayMetrics());
 
-        /*
-        Locale locale = new Locale(localeString);
-       
-        Configuration config = context.getResources().getConfiguration();
-        config.locale = locale;
-        
-        context.getResources().updateConfiguration(config,
-                context.getResources().getDisplayMetrics());
-
-        Log.d(LOG_TAG, "locale = " + locale.getDisplayName());
-        */
-        
+        /* Set the preference after setting the locale in case something goes
+        wrong.  If setting the locale causes an Exception, it should be set in the
+        preferences, otherwise ChatSecure will be stuck in a crash loop. */
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         Editor prefEdit = prefs.edit();
-        prefEdit.putString(context.getString(R.string.pref_default_locale), localeString);
-        prefEdit.commit();
-        
-        Configuration config = getResources().getConfiguration();
-
-        locale = new Locale(localeString);            
-        config.locale = locale;
-        getResources().updateConfiguration(config, getResources().getDisplayMetrics());
-      
-        
-        return true;
+        prefEdit.putString(context.getString(R.string.key_default_locale_pref), language);
+        prefEdit.apply();
     }
-    
+
     /**
     @Override
     public void onTerminate() {
@@ -392,11 +429,11 @@ public class ImApp extends Application {
     public synchronized void startImServiceIfNeed(boolean isBoot) {
         if (Log.isLoggable(LOG_TAG, Log.DEBUG))
             log("start ImService");
-        
+
         Intent serviceIntent = new Intent();
         serviceIntent.setComponent(ImServiceConstants.IM_SERVICE_COMPONENT);
         serviceIntent.putExtra(ImServiceConstants.EXTRA_CHECK_AUTO_LOGIN, true);
-        
+
         if (mImService == null)
         {
             mApplicationContext.startService(serviceIntent);
@@ -404,25 +441,23 @@ public class ImApp extends Application {
                 mConnectionListener = new MyConnListener(new Handler());
             }
         }
-        
+
         if (mImServiceConn != null && !isBoot)
             mApplicationContext
                 .bindService(serviceIntent, mImServiceConn, Context.BIND_AUTO_CREATE);
 
-                   
+
     }
 
     public boolean hasActiveConnections ()
     {
         return !mConnections.isEmpty();
-        
+
     }
-    
+
     public synchronized void stopImServiceIfInactive() {
-        boolean hasActiveConnection = true;
-        hasActiveConnection = !mConnections.isEmpty();
-        
-        if (!hasActiveConnection) {
+
+        if (!hasActiveConnections()) {
             if (Log.isLoggable(LOG_TAG, Log.DEBUG))
                 log("stop ImService because there's no active connections");
 
@@ -433,12 +468,12 @@ public class ImApp extends Application {
             Intent intent = new Intent();
             intent.setComponent(ImServiceConstants.IM_SERVICE_COMPONENT);
             mApplicationContext.stopService(intent);
-         
+
         }
     }
-    
-    
-    public synchronized void forceStopImService() 
+
+
+    public synchronized void forceStopImService()
     {
         if (mImService != null) {
             if (Log.isLoggable(LOG_TAG, Log.DEBUG))
@@ -450,10 +485,10 @@ public class ImApp extends Application {
             Intent intent = new Intent();
             intent.setComponent(ImServiceConstants.IM_SERVICE_COMPONENT);
             mApplicationContext.stopService(intent);
-         
+
         }
     }
-    
+
     private ServiceConnection mImServiceConn = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
             if (Log.isLoggable(LOG_TAG, Log.DEBUG))
@@ -461,7 +496,7 @@ public class ImApp extends Application {
 
             mImService = IRemoteImService.Stub.asInterface(service);
             fetchActiveConnections();
-            
+
             synchronized (mQueue) {
                 for (Message msg : mQueue) {
                     msg.sendToTarget();
@@ -470,7 +505,7 @@ public class ImApp extends Application {
             }
             Message msg = Message.obtain(null, EVENT_SERVICE_CONNECTED);
             mBroadcaster.broadcast(msg);
-            
+
             /*
             if (mKillServerOnStart)
             {
@@ -495,7 +530,7 @@ public class ImApp extends Application {
     public static boolean isNetworkAvailableAndConnected (Context context) {
         ConnectivityManager manager = (ConnectivityManager) context
                 .getSystemService(CONNECTIVITY_SERVICE);
-      
+
         NetworkInfo nInfo = manager.getActiveNetworkInfo();
 
         if (nInfo != null)
@@ -574,6 +609,8 @@ public class ImApp extends Application {
                 String fullName = c.getString(2);
                 String signUpUrl = c.getString(3);
 
+                if (mProviders == null) // mProviders has been reset
+                    break;
                 mProviders.put(id, new ProviderDef(id, providerName, fullName, signUpUrl));
             }
         } finally {
@@ -584,7 +621,7 @@ public class ImApp extends Application {
     private void loadDefaultBrandingRes() {
         HashMap<Integer, Integer> resMapping = new HashMap<Integer, Integer>();
 
-        resMapping.put(BrandingResourceIDs.DRAWABLE_LOGO, R.drawable.ic_launcher_gibberbot);
+        resMapping.put(BrandingResourceIDs.DRAWABLE_LOGO, R.drawable.ic_launcher);
         resMapping.put(BrandingResourceIDs.DRAWABLE_PRESENCE_ONLINE,
                 android.R.drawable.presence_online);
         resMapping
@@ -657,7 +694,7 @@ public class ImApp extends Application {
                 Map<Integer, Integer> resMap = plugin.getResourceMap();
                 //int[] smileyIcons = plugin.getSmileyIconIds();
 
-                
+
                 BrandingResources res = new BrandingResources(packageRes, resMap,
                         mDefaultBrandingResources);
                 mBrandingResources.put(pluginInfo.mProviderName, res);
@@ -703,12 +740,12 @@ public class ImApp extends Application {
     }
 
     public IImConnection createConnection(long providerId, long accountId) throws RemoteException {
-        
+
         if (mImService == null) {
             // Service hasn't been connected or has died.
             return null;
         }
-        
+
         IImConnection conn = getConnection(providerId);
         if (conn == null) {
             conn = mImService.createConnection(providerId, accountId);
@@ -718,12 +755,12 @@ public class ImApp extends Application {
 
     public IImConnection getConnection(long providerId) {
         synchronized (mConnections) {
-            
+
             IImConnection im = mConnections.get(providerId);
-            
+
             if (im != null)
             {
-                try 
+                try
                 {
                     im.getState();
                 }
@@ -735,7 +772,7 @@ public class ImApp extends Application {
                     im = mConnections.get(providerId);
                 }
             }
-            
+
             return im;
         }
     }
@@ -775,22 +812,22 @@ public class ImApp extends Application {
     public void deleteAccount (long accountId, long providerId)
     {
         ContentResolver resolver = getContentResolver();
-        
+
         Uri accountUri = ContentUris.withAppendedId(Imps.Account.CONTENT_URI, accountId);
         resolver.delete(accountUri, null, null);
-        
+
         Uri providerUri = ContentUris.withAppendedId(Imps.Provider.CONTENT_URI, providerId);
         resolver.delete(providerUri, null, null);
-      
+
         Uri.Builder builder = Imps.Contacts.CONTENT_URI_CONTACTS_BY.buildUpon();
         ContentUris.appendId(builder, providerId);
-        ContentUris.appendId(builder, accountId);        
+        ContentUris.appendId(builder, accountId);
         resolver.delete(builder.build(), null, null);
-        
-        
-        
+
+
+
     }
-    
+
     public void removePendingCall(Handler target) {
         synchronized (mQueue) {
             Iterator<Message> iter = mQueue.iterator();
@@ -871,16 +908,16 @@ public class ImApp extends Application {
         {
             try {
                 // register the listener before fetch so that we won't miss any connection.
-                mImService.addConnectionCreatedListener(mConnCreationListener);                
+                mImService.addConnectionCreatedListener(mConnCreationListener);
                 synchronized (mConnections) {
-                    
+
                     for (IBinder binder : (List<IBinder>) mImService.getActiveConnections()) {
                         IImConnection conn = IImConnection.Stub.asInterface(binder);
                         long providerId = conn.getProviderId();
-                        if (!mConnections.containsKey(providerId)) {
+                    //    if (!mConnections.containsKey(providerId)) {
                             mConnections.put(providerId, conn);
                             conn.registerConnectionListener(mConnectionListener);
-                        }
+                      //  }
                     }
                 }
             } catch (RemoteException e) {
@@ -893,10 +930,10 @@ public class ImApp extends Application {
         public void onConnectionCreated(IImConnection conn) throws RemoteException {
             long providerId = conn.getProviderId();
             synchronized (mConnections) {
-                if (!mConnections.containsKey(providerId)) {
+              //  if (!mConnections.containsKey(providerId)) {
                     mConnections.put(providerId, conn);
                     conn.registerConnectionListener(mConnectionListener);
-                }
+               // }
             }
             broadcastConnEvent(EVENT_CONNECTION_CREATED, providerId, null);
         }
@@ -916,7 +953,7 @@ public class ImApp extends Application {
             try {
 
                // fetchActiveConnections();
-                
+
                 int what = -1;
                 long providerId = conn.getProviderId();
                 switch (state) {
@@ -936,11 +973,11 @@ public class ImApp extends Application {
 
                 case ImConnection.DISCONNECTED:
                     // NOTE: if this logic is changed, the logic in ImConnectionAdapter.ConnectionAdapterListener must be changed to match
-                    what = EVENT_CONNECTION_DISCONNECTED;                    
-                    mConnections.remove(providerId);                    
+                    what = EVENT_CONNECTION_DISCONNECTED;
+               //     mConnections.remove(providerId);
                     // stop the service if there isn't an active connection anymore.
                     stopImServiceIfInactive();
-                    
+
                     break;
 
                 case ImConnection.SUSPENDED:
@@ -986,7 +1023,7 @@ public class ImApp extends Application {
         return mImService;
     }
 
-   
+
     public IChatSession getChatSession(long providerId, String remoteAddress) {
         IImConnection conn = getConnection(providerId);
 
@@ -1012,7 +1049,7 @@ public class ImApp extends Application {
 
     public void maybeInit(Activity activity) {
         startImServiceIfNeed();
-        setAppTheme(activity);
+        setAppTheme(activity,null);
         ImPluginHelper.getInstance(this).loadAvailablePlugins();
     }
 
@@ -1024,7 +1061,7 @@ public class ImApp extends Application {
             }
         });
     }
-    
+
 
     private void initTrustManager ()
     {
@@ -1032,7 +1069,7 @@ public class ImApp extends Application {
         mTrustManager = new MemorizingTrustManager(this, trustPinning);
 
     }
-    
+
     public MemorizingTrustManager getTrustManager ()
     {
         return mTrustManager;

@@ -23,8 +23,10 @@
      >
 
     <item android:id="@+id/menu_account_delete" 
+        
+    android:drawable="@drawable/ic_menu_trash"
     android:title="@string/menu_remove_account"
-    app:showAsAction="never"
+    app:showAsAction="ifRoom"
      />
     <!--
     <item android:id="@+id/menu_account_settings" 

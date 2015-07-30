@@ -30,7 +30,13 @@
     android:summary="@string/how_encrypted_chats_are_started"
     android:defaultValue="auto">
   </ListPreference>
-  
+
+  <CheckBoxPreference
+          android:key="pref_linkify_on_tor"
+          android:title="@string/pref_linkify_on_tor_title"
+          android:summary="@string/pref_linkify_on_tor_summary"
+          android:defaultValue="false" />
+
  <!--
    <EditTextPreference 
           android:key="pref_sip_account"
@@ -60,14 +66,10 @@
    
     
    <PreferenceCategory android:title="@string/pref_group_looknfeel_title">
- <ListPreference android:title="@string/KEY_PREF_LANGUAGE_TITLE"
-   android:key="pref_default_locale"
-   android:entryValues="@array/languages_values"
-   android:entries="@array/languages"
-  >
-  
-  
- </ListPreference>
+       <ListPreference
+            android:key="pref_language"
+            android:title="@string/KEY_PREF_LANGUAGE_TITLE" >
+        </ListPreference>
 
  
   <CheckBoxPreference
@@ -94,6 +96,13 @@
           android:key="pref_delete_unsecured_media"
           android:title="@string/pref_delete_unsecured_media_title"
           android:summary="@string/pref_delete_unsecured_media_summary"
+          android:defaultValue="false" />
+
+  <CheckBoxPreference
+          android:enabled="false"
+          android:key="pref_store_media_on_external_storage"
+          android:title="@string/pref_store_media_on_external_storage_title"
+          android:summary="@string/pref_store_media_on_external_storage_summary"
           android:defaultValue="false" />
    </PreferenceCategory>
   

@@ -1,13 +1,13 @@
 /*
  * Copyright (C) 2007-2008 Esmertec AG. Copyright (C) 2007-2008 The Android Open
  * Source Project
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
  * the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -18,7 +18,6 @@
 package info.guardianproject.otr.app.im.service;
 
 import info.guardianproject.otr.app.im.R;
-import info.guardianproject.otr.app.im.app.ContactListActivity;
 import info.guardianproject.otr.app.im.app.NewChatActivity;
 import info.guardianproject.otr.app.im.app.WelcomeActivity;
 import info.guardianproject.otr.app.im.provider.Imps;
@@ -89,11 +88,11 @@ public class StatusBarNotifier {
     }
 
     public void notifyError(String username, String error) {
-        
+
         Intent intent = new Intent(mContext, NewChatActivity.class);
         notify(username, error, error, error, -1, -1, intent, true, R.drawable.ic_stat_status);
     }
-    
+
     public void notifySubscriptionRequest(long providerId, long accountId, long contactId,
             String username, String nickname) {
         if (!isNotificationEnabled(providerId)) {
@@ -139,9 +138,9 @@ public class StatusBarNotifier {
         String message = mContext.getString(R.string.account_setup_pers_now_title);
         notify(message, title, message, message, -1, -1, intent, true, R.drawable.notify_chatsecure);
 
-        
+
     }
-    
+
     public void notifyDisconnected(long providerId, long accountId) {
 
         Intent intent = new Intent(mContext, NewChatActivity.class);
@@ -162,7 +161,7 @@ public class StatusBarNotifier {
     }
 
     public void dismissNotifications(long providerId) {
-      
+
         synchronized (mNotificationInfos) {
             NotificationInfo info = mNotificationInfos.get(providerId);
             if (info != null) {
@@ -201,17 +200,17 @@ public class StatusBarNotifier {
 
     private Imps.ProviderSettings.QueryMap getGlobalSettings() {
         if (mGlobalSettings == null) {
-            
+
             ContentResolver contentResolver = mContext.getContentResolver();
-            
+
             Cursor cursor = contentResolver.query(Imps.ProviderSettings.CONTENT_URI,new String[] {Imps.ProviderSettings.NAME, Imps.ProviderSettings.VALUE},Imps.ProviderSettings.PROVIDER + "=?",new String[] { Long.toString(Imps.ProviderSettings.PROVIDER_ID_FOR_GLOBAL_SETTINGS)},null);
-            
+
             if (cursor == null)
                 return null;
-            
+
             mGlobalSettings = new Imps.ProviderSettings.QueryMap(cursor, contentResolver, Imps.ProviderSettings.PROVIDER_ID_FOR_GLOBAL_SETTINGS, true, mHandler);
         }
-        
+
         return mGlobalSettings;
     }
 
@@ -233,11 +232,12 @@ public class StatusBarNotifier {
                 info = new NotificationInfo(providerId, accountId);
                 mNotificationInfos.put(sender, info);
             }
-            info.addItem(sender, title, message, intent);
+            info.addItem(sender, title, message, intent);            
         }
 
         mNotificationManager.notify(info.computeNotificationId(),
                 info.createNotification(tickerText, lightWeightNotify, icon));
+
         
     }
 
@@ -266,7 +266,7 @@ public class StatusBarNotifier {
             String mTitle;
             String mMessage;
             Intent mIntent;
-            
+
             public Item(String title, String message, Intent intent) {
                 mTitle = title;
                 mMessage = message;
@@ -326,20 +326,20 @@ public class StatusBarNotifier {
                 .setContentTitle(getTitle())
                 .setContentText(getMessage())
                 .setContentIntent(PendingIntent.getActivity(mContext, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT))
-                .setAutoCancel(true)
-                ;
+                .setAutoCancel(true);
+                
 
             if (!(lightWeightNotify || shouldSuppressSoundNotification())) {
                 setRinger(mProviderId, builder);
             }
-            
-            return builder.getNotification();
+
+            return builder.build();
         }
 
         private Intent getDefaultIntent() {
             Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.setType(Imps.Contacts.CONTENT_TYPE);
-            intent.setClass(mContext, ContactListActivity.class);
+            intent.setClass(mContext, NewChatActivity.class);
             intent.putExtra(ImServiceConstants.EXTRA_INTENT_ACCOUNT_ID, mAccountId);
        //     intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
 

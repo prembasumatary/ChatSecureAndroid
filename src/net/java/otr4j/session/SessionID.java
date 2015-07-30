@@ -1,6 +1,6 @@
 /*
  * otr4j, the open source java otr library.
- * 
+ *
  * Distributable under LGPL license. See terms of license at gnu.org.
  */
 package net.java.otr4j.session;
@@ -22,38 +22,24 @@ public final class SessionID {
        mLocalUserId = localUserId;
        mRemoteUserId = remoteUserId;
        mProtocolName = protocolName;
-       
-       if (mLocalUserId != null)
-           mSessionId = Address.stripResource(mLocalUserId) + '_' + mProtocolName + '_' + Address.stripResource(mRemoteUserId);
-       
+       mSessionId = Address.stripResource(mLocalUserId) + '_' + mProtocolName + '_' + Address.stripResource(mRemoteUserId);
     }
 
     public String getLocalUserId ()
     {
         return mLocalUserId;
     }
-    
+
     public String getRemoteUserId ()
     {
         return mRemoteUserId;
     }
-    
-    //this is only used for resource changes
-    public void updateRemoteUserId (String remoteUserId)
-    {        
-        mRemoteUserId = remoteUserId;
-    }   
-    
-    public String getSessionId ()
-    {
-        return mSessionId;
-    }
-    
+
     public String getProtocolName ()
     {
         return mProtocolName;
     }
-    
+
     public String toString() {
         return mSessionId;
 

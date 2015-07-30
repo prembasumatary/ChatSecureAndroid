@@ -23,6 +23,8 @@
     android:layout_height="wrap_content"
     android:padding="3dp"	
     android:layout_margin="6dp"
+    android:descendantFocusability="blocksDescendants"
+    
      >
      
 			
@@ -39,12 +41,11 @@
         android:background="@drawable/message_view_rounded_light"
         >
         
-                <TextView
+                <org.ironrabbit.type.CustomTypefaceTextView
                     android:id="@+id/message"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="sans-serif-light"
-                    android:autoLink="web|email|phone|map"
                     android:padding="6dp"
               android:layout_gravity="left"
               android:gravity="left"
@@ -60,6 +61,7 @@
             android:layout_height="wrap_content"     
              android:scaleType="centerCrop"
          android:visibility="gone"  
+         android:focusableInTouchMode="true"
              />
                   <TextView
                 android:id="@+id/messagets"
@@ -68,13 +70,12 @@
                 android:layout_marginLeft="24dp"
                  android:layout_marginBottom="1dp"
                  android:padding="6dp"
-            	android:textSize="10dp"                 
+            	android:textSize="10sp"                 
             	   android:color="?messageTextSecondary"
                 />
                    
         
           	</LinearLayout>
-          	
      
 		<ImageView
             android:id="@+id/avatar"
