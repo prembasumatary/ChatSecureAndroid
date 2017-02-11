@@ -225,6 +225,7 @@
   <string name="menu_switch_chats">Сменить чат</string>
   <string name="menu_plus">Мenu+</string>
   <string name="select_link_title">Выберите ссылку</string>
+  <string name="delete">Удалить</string>
   <!--Views: Chat: Group-->
   <string name="invitation_prompt">Пользователь <xliff:g id="USER">%1$s</xliff:g> приглашает вас в групповой чат.</string>
   <string name="invitation_sent_prompt">Приглашение отправлено пользователю <xliff:g id="USER">%1$s</xliff:g>.</string>
@@ -305,6 +306,7 @@
   <string name="pref_show_grid">Показать Сетку Контактов</string>
   <string name="pref_show_grid_summary">Показать контакт-лист в виде сетки аватаров</string>
   <string name="button_yes_accept_all">Да, Подтвердить Все</string>
+  <!--Prompt user to resolve missing External Storage media store-->
   <!--Actions: Settings: General: Other Tuning-->
   <string name="pref_group_tuning_title">Другие Hастройки</string>
   <string name="start_on_boot">Запускать ChatSecure автоматически</string>
@@ -391,14 +393,12 @@
   <string name="there_is_no_viewer_available_for_this_file_format">Для программы для  открытия этого типа файлов.</string>
   <string name="please_start_a_secure_conversation_before_scanning_codes">Пожалуйста, начните безопасное общение, перед сканирование кодов.</string>
   <string name="otr_keyring_not_imported_please_check_the_file_exists_in_the_proper_format_and_location">OTR-ключи не импортированы. Проверьте наличие файла.</string>
-  <string name="otr_keysync_warning_message">Скопируйте файл \'otr_keystore.ofcaes\' от настольного инструмента OtrFileConverter в корневую директорию вашего устройства хранения</string>
+  <string name="otr_keysync_warning_message">Скопируйте файл \'otr_keystore.ofcaes\' от настольного инструмента KeySync в корневую директорию вашего устройства хранения</string>
   <string name="msg_sent_failed">Не удалось отправить сообщение.</string>
   <string name="disconnected_warning">Сообщение будет отправлено после подключения</string>
   <string name="contact_offline_warning">Пользователь <xliff:g id="USER_0">%1$s</xliff:g> не в сети. Отправленные сообщения будут доставлены, когда пользователь <xliff:g id="USER_1">%1$s</xliff:g> выйдет в сеть.</string>
   <string name="contact_not_in_list_warning">Пользователь <xliff:g id="USER">%1$s</xliff:g> отсутствует в списке контактов.</string>
   <string name="account_settings_title">Настройки учетной записи</string>
-
-  <string name="warning_alpha">ВНИМАНИЕ: Это - ранний релиз программы ChatSecure и все еще может содержать ошибки или иметь проблемы безопасности.</string>
   <!--added 2011/09/01-->
   <string name="menu_view_groups">Группы</string>
   <string name="_open_conversations">открытый разговор (ы)</string>
@@ -487,5 +487,33 @@
     <item>:-D</item>
     <item>o_O</item>
   </string-array>
-  <string name="i_need_a_new_account">Новая учетная запись</string>
+ <string name="i_have_an_existing_xmpp_account">Существующий аккаунт</string>
+			<string name="account_existing_full">Соединить с моим существующим аккаунтом на Jabber / XMPP сервере.</string>
+			
+			<string name="i_want_to_chat_using_my_google_account">Google аккаунт </string>
+			<string name="account_google_full">Чат с другими пользователями Google, используя существующий Google аккаунт.</string>
+			
+			<string name="i_want_to_chat_on_my_local_wifi_network_bonjour_zeroconf_">WiFi Mesh Чат</string>
+			<string name="account_wifi_full">Чат в той же локальной WiFi или Mesh сети - без необходимости подключения к Интернету или серверу!</string>
+			<string name="account_wifi_button">Включить WiFi чат</string>
+						
+			<string name="i_need_a_new_account">Новая учетная запись</string>
+			<string name="account_new_full">Регистрация нового, бесплатного аккаунта на предложенном или своём сервере.</string>
+			<string name="account_new_button">Создать новый аккаунт</string>
+			
+			
+			<string name="i_need_a_burner_one_time_throwaway_account_">Секретная личность!</string>
+			<string name="account_burner_full">Создать анонимный, одноразовый \"горящий\"  аккаунт чата в один клик (требуется Orbot: Tor для Android)</string>
+			<string name="account_burner_button">Генерировать личность</string>
+			
+			<string name="this_is_a_group_chat">Это групповой чат</string>
+			
+			<string name="_resent_">"[resent] "</string>
+			
+			<string name="resent">"[resent] "</string>
+			
+			<string name="unable_to_securely_share_this_file">Невозможно безопасно отправить этот файл</string>
+			
+			<string name="install_orbot_">Установить Orbot?</string>
+  
 </resources>

@@ -683,7 +683,7 @@ public class XmppConnection extends ImConnection implements CallbackHandler {
                 else
                     return servers.iterator().next();
             }
-            catch (XMPPException e)
+            catch (Exception e)
             {
                 Log.e(ImApp.LOG_TAG,"error finding MUC",e);
                 
@@ -1183,16 +1183,24 @@ public class XmppConnection extends ImConnection implements CallbackHandler {
                 sslContext.init(null, new javax.net.ssl.TrustManager[] { trustManager },
                         secureRandom);
 
-                sslContext.getDefaultSSLParameters().getCipherSuites();
-
-                if (Build.VERSION.SDK_INT >= 20) {
-
-                    sslContext.getDefaultSSLParameters().setCipherSuites(XMPPCertPins.SSL_IDEAL_CIPHER_SUITES_API_20);
-
-                }
-                else
+                try
                 {
-                    sslContext.getDefaultSSLParameters().setCipherSuites(XMPPCertPins.SSL_IDEAL_CIPHER_SUITES);
+                    sslContext.getDefaultSSLParameters().getCipherSuites();
+
+                    if (Build.VERSION.SDK_INT >= 20) {
+    
+                        sslContext.getDefaultSSLParameters().setCipherSuites(XMPPCertPins.SSL_IDEAL_CIPHER_SUITES_API_20);    
+                    }
+                    else
+                    {
+                        sslContext.getDefaultSSLParameters().setCipherSuites(XMPPCertPins.SSL_IDEAL_CIPHER_SUITES);
+                    }
+                }
+                catch (Exception e)
+                {
+                    //this can happen if the cipher suites aren't available on the devices
+                    debug(TAG, "Error setting ideal cipher suites: " + e);
+                    
                 }
 
 

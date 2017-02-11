@@ -2,8 +2,8 @@
     package="info.guardianproject.otr.app.im"
     android:installLocation="auto"
     android:sharedUserLabel="@string/perm_label"
-    android:versionCode="1420001"
-    android:versionName="14.2.0a" >
+    android:versionCode="1423001"
+    android:versionName="14.2.3" >
 
     <supports-screens
         android:anyDensity="true"
@@ -64,54 +64,6 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data android:host="*" />
-                <data android:scheme="file" />
-                <data android:scheme="content" />
-                <!-- this crack smoking pattern is required to match file extensions in folders -->
-                <data android:pathPattern=".*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.ofcaes" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data android:host="*" />
-                <data android:scheme="file" />
-                <data android:scheme="content" />
-                <!--
-                The ultimate in crack smoking!  Some apps will only respect these file associations
-                if the mimeType is not set, and other apps will only respect them if mimeType is set
-                to */*.  Therefore we have two whole copies of the same thing, besides setting the mimeType. 
-                -->
-                <data android:mimeType="*/*" />
-                <!-- this crack smoking pattern is required to match file extensions in folders -->
-                <data android:pathPattern=".*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.ofcaes" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.ofcaes" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SENDTO" />
@@ -185,6 +137,18 @@
         <activity
             android:name=".ui.AboutActivity"
             android:exported="false" />
+        <activity
+            android:name=".app.PanicResponderActivity"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="info.guardianproject.panic.action.TRIGGER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".app.ExitActivity"
+            android:theme="@android:style/Theme.NoDisplay" />
 
         <service
             android:name=".plugin.xmpp.XmppImPlugin"
